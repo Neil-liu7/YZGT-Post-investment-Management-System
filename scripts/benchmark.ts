@@ -1,0 +1,10 @@
+import { mkdtempSync,rmSync,writeFileSync } from 'node:fs';
+import { tmpdir,cpus,platform,release,totalmem } from 'node:os';
+import { join } from 'node:path';
+import { performance } from 'node:perf_hooks';
+import { createApp } from '../apps/server/src/app';
+const root=mkdtempSync(join(tmpdir(),'yzgt-benchmark-'));const runtime=createApp({database_file:join(root,'app.sqlite'),storage_dir:join(root,'storage')});let projectId='';
+runtime.store.transaction(()=>{for(let p=0;p<50;p++){const project=runtime.store.create('projects',{name:`合成项目${p}`,company:'基准公司',archived:false,task_order_version:1});projectId=project.id;for(let n=0;n<100;n++){const o=runtime.store.create('obligations',{project_id:project.id,title:`事项${n}`,source_type:'manual',source_description:'性能合成样例'});runtime.store.create('tasks',{project_id:project.id,obligation_id:o.id,title:`事项${n}`,occurrence_key:'once',status:n%4===0?'done':'pending',effective_due_on:'2026-11-18',deadline_state:'calculated',activated_on:'2026-01-01',schedule_revision:1,sort_order:n});}}});
+const server=runtime.app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));const address=server.address() as any;const samples:any[]=[];
+for(const path of ['/api/v1/dashboard',`/api/v1/projects/${projectId}/tasks?page_size=20`]){const ms=[];for(let n=0;n<6;n++){const start=performance.now();const response=await fetch(`http://127.0.0.1:${address.port}${path}`);if(!response.ok)throw new Error('基准接口失败');await response.json();ms.push(Math.round((performance.now()-start)*100)/100);}samples.push({path,first_ms:ms[0],warm_ms:ms.slice(1),max_ms:Math.max(...ms)});}
+const result={recorded_at:new Date().toISOString(),os:`${platform()} ${release()}`,cpu:cpus()[0]?.model,logical_cpus:cpus().length,memory_gb:Math.round(totalmem()/1024**3),node:process.versions.node,mode:'tsx HTTP API / production SQLite configuration',projects:50,tasks:5000,samples};writeFileSync('docs/性能验证.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));await new Promise<void>(r=>server.close(()=>r()));runtime.store.close();rmSync(root,{recursive:true,force:true});

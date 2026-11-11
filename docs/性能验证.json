@@ -1,0 +1,37 @@
+{
+  "recorded_at": "2026-11-11T09:44:30.847Z",
+  "os": "win32 10.0.26200",
+  "cpu": "Intel(R) Core(TM) Ultra 5 125H",
+  "logical_cpus": 18,
+  "memory_gb": 15,
+  "node": "22.22.2",
+  "mode": "tsx HTTP API / production SQLite configuration",
+  "projects": 50,
+  "tasks": 5000,
+  "samples": [
+    {
+      "path": "/api/v1/dashboard",
+      "first_ms": 322.83,
+      "warm_ms": [
+        248.57,
+        246.23,
+        233.95,
+        233.9,
+        230.84
+      ],
+      "max_ms": 322.83
+    },
+    {
+      "path": "/api/v1/projects/9224f752-f7bc-4ca4-927c-45fbed173989/tasks?page_size=20",
+      "first_ms": 17.01,
+      "warm_ms": [
+        16.61,
+        18.29,
+        17.41,
+        16.33,
+        19.38
+      ],
+      "max_ms": 19.38
+    }
+  ]
+}

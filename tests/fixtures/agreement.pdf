@@ -1,0 +1,47 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type0 /BaseFont /STSong-Light /Encoding /Identity-H /DescendantFonts [5 0 R] /ToUnicode 7 0 R >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /CIDFontType0 /BaseFont /STSong-Light /FontDescriptor << /Type /FontDescriptor /FontName /STSong-Light /Flags 4 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 900 /Descent -200 /CapHeight 700 /StemV 80 >> /CIDSystemInfo << /Registry (Adobe) /Ordering (GB1) /Supplement 4 >> >>
+endobj
+6 0 obj
+<< /Length 573 >>
+stream
+BT /F1 12 Tf 40 740 Td 24 TL <7b2c003167610020516c53f85e944e8e00320030003200395e740031003267080033003165e5524d5b8c62105b9e7f343002> Tj
+T* <7b2c003267610020516c53f85e944e8e672c534f8bae7b7e7f72540e00334e2a670863d04ea4767b8bb0675065993002> Tj
+T* <7b2c003367610020516c53f85e944e8e653652306b3e9879540e00354e2a5de54f5c65e563d04f9b51ed8bc13002> Tj
+T* <7b2c003467610020516c53f85e944e8e7b7e7f72540e0031003065e563d04ea475338bf7ff0c5e764e8e4ea45272540e0032003065e563d04f9b65874ef63002> Tj
+T* <7b2c0035676100206bcf5b635ea67ed3675f540e0033003065e5518562a590018d2252a162a588683002> Tj ET
+endstream
+endobj
+7 0 obj
+<< /Length 340 >>
+stream
+/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /Identity-UCS def /CMapType 2 def 1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfrange <0000> <FFFF> <0000> endbfrange endcmap CMapName currentdict /CMap defineresource pop end end
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000378 00000 n 
+0000000698 00000 n 
+0000001322 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R  >>
+startxref
+1713
+%%EOF

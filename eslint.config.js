@@ -1,0 +1,3 @@
+import js from '@eslint/js';
+import ts from 'typescript-eslint';
+export default ts.config({ignores:['node_modules/**','dist/**','apps/web/dist/**','playwright-report/**','test-results/**','var/**','storage/**','backups/**']},js.configs.recommended,...ts.configs.recommended,{languageOptions:{globals:{console:'readonly',process:'readonly',fetch:'readonly',setTimeout:'readonly',URL:'readonly',Buffer:'readonly'}},rules:{'no-empty':['error',{allowEmptyCatch:true}],'no-irregular-whitespace':['error',{skipStrings:true,skipTemplates:true,skipJSXText:true}],'@typescript-eslint/no-explicit-any':'off','@typescript-eslint/no-unused-vars':['error',{argsIgnorePattern:'^_',varsIgnorePattern:'^_'}]}});

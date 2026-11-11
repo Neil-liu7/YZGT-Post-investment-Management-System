@@ -1,0 +1,9 @@
+{
+  "production_start": "passed",
+  "html_route": "passed",
+  "private_paths": "passed",
+  "port_conflict": "passed",
+  "production_txt_docx_pdf": "passed",
+  "os": "win32",
+  "port": 18965
+}

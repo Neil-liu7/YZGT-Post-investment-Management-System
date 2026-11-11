@@ -1,0 +1,7 @@
+{
+  "name":"yizhuang-post-investment","version":"1.0.0","private":true,"type":"module",
+  "workspaces":["apps/*","packages/*"],"engines":{"node":">=22.22.2"},
+  "scripts":{"doctor":"tsx scripts/cli.ts doctor","db:migrate":"tsx scripts/cli.ts migrate","dev":"tsx scripts/dev.ts","typecheck":"tsc --noEmit","lint":"eslint .","test":"vitest run","test:e2e":"playwright test","build":"npm run typecheck && vite build --config apps/web/vite.config.ts && esbuild apps/server/src/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs","start":"node scripts/start.mjs","backup":"tsx scripts/cli.ts backup","restore":"tsx scripts/cli.ts restore","benchmark":"tsx scripts/benchmark.ts"},
+  "dependencies":{"better-sqlite3":"11.10.0","dotenv":"16.5.0","drizzle-orm":"0.44.2","express":"5.1.0","mammoth":"1.9.1","multer":"2.0.2","nodemailer":"7.0.3","pdfjs-dist":"4.10.38","react":"19.1.0","react-dom":"19.1.0","react-router-dom":"7.6.2","zod":"3.25.67"},
+  "devDependencies":{"@eslint/js":"9.28.0","@playwright/test":"1.52.0","@types/better-sqlite3":"7.6.13","@types/express":"5.0.3","@types/multer":"1.4.12","@types/node":"22.15.30","@types/nodemailer":"6.4.17","@types/react":"19.1.6","@types/react-dom":"19.1.6","@types/supertest":"6.0.3","@vitejs/plugin-react":"4.5.2","esbuild":"0.25.5","eslint":"9.28.0","supertest":"7.1.1","tsx":"4.20.3","typescript":"5.8.3","typescript-eslint":"8.34.1","vite":"6.3.5","vitest":"3.2.3"}
+}

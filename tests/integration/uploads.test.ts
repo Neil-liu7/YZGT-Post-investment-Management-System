@@ -1,0 +1,12 @@
+import {afterEach,it,expect} from 'vitest';
+import request from 'supertest';
+import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join,resolve,sep} from 'node:path';
+import {createApp} from '../../apps/server/src/app';
+const resources:any[]=[];
+function setup(){const root=mkdtempSync(join(tmpdir(),'yzgt-upload-'));const r=createApp({database_file:join(root,'app.sqlite'),storage_dir:join(root,'storage')});resources.push({...r,root});const p=r.store.create('projects',{name:'合成项目',company:'合成公司'});return {...r,p};}
+afterEach(()=>{for(const r of resources.splice(0)){r.store.close();if(!resolve(r.root).startsWith(resolve(tmpdir())+sep))throw new Error('bad test path');rmSync(r.root,{recursive:true,force:true});}});
+it('A03 oversized upload is 413 and no document is recorded',async()=>{const {app,store,p}=setup();const r=await request(app).post(`/api/v1/projects/${p.id}/documents`).attach('file',Buffer.alloc(20971521,65),'large.txt');expect(r.status).toBe(413);expect(store.all('documents')).toHaveLength(0);});
+it('A03 scan encryption corruption all retain failed original and never create tasks',async()=>{const {app,store,p}=setup();for(const filename of ['scanned.pdf','encrypted.pdf']){const r=await request(app).post(`/api/v1/projects/${p.id}/documents`).attach('file',readFileSync(join('tests/fixtures',filename)),filename);expect(r.status).toBe(201);expect(r.body.data.state).toBe('parse_failed');expect(r.body.data.error).toMatch(/扫描|加密|文本/);}const bad=await request(app).post(`/api/v1/projects/${p.id}/documents`).attach('file',Buffer.from('corrupt binary'),'corrupt.docx');expect(bad.body.data.state).toBe('parse_failed');expect(store.all('tasks')).toHaveLength(0);});
+it('historical original supplement preserves document reference and downloads actual bytes',async()=>{const {app,store,p}=setup();const d=store.create('documents',{project_id:p.id,original_name:'历史.txt',state:'needs_file',storage_name:null,file_version:1});const bytes=Buffer.from('合成补传原件');const r=await request(app).post(`/api/v1/documents/${d.id}/supplement`).field('version',String(d.version)).attach('file',bytes,'supplement.txt');expect(r.status).toBe(200);expect(r.body.data.id).toBe(d.id);expect(r.body.data.state).toBe('parsed');const dl=await request(app).get(`/api/v1/documents/${d.id}/content`);expect(dl.status).toBe(200);expect(dl.text).toBe(bytes.toString());});

@@ -1,0 +1,60 @@
+import { Store,AppError } from './store';
+import { businessDateSchema,deadlineRuleSchema,obligationSchema,versionSchema } from '../../../packages/contracts/src/index';
+import { calculate,generateOccurrences,businessToday } from '../../../packages/domain/src/index';
+import type { DeadlineRule } from '../../../packages/contracts/src/index';
+import { z } from 'zod';
+import { createHash } from 'node:crypto';
+export class Business {
+ constructor(public store:Store){}
+ context(){return {events:this.store.all('events'),calendars:this.store.all('calendars').map(calendar=>({...calendar,version:calendar.calendar_version??calendar.version})),today:businessToday(this.store.clock())};}
+ validateRule(project_id:string,input:any){
+ const rule=deadlineRuleSchema.parse(input);
+ const visit=(value:any)=>{
+  if(!value||typeof value!=='object')return;
+  if(value.type==='event'){const event=this.store.require('events',value.event_id);if(event.project_id!==project_id)throw new AppError('FOREIGN_PROJECT','起算事件不属于本项目');}
+  if(value.convention?.calendar_id){const calendar=this.store.require('calendars',value.convention.calendar_id);if((calendar.calendar_version??calendar.version)!==value.convention.calendar_version)throw new AppError('CALENDAR_VERSION','日历版本不匹配');}
+  if(value.anchors)value.anchors.forEach(visit);
+  if(value.anchor)visit(value.anchor);
+ };
+ visit(rule);if(rule.kind==='continuous'){visit(rule.starts_at);visit(rule.ends_at);}return rule;
+ }
+ private validateDeadlineOperation(entity:any,operation:string){
+  if(['manual_due','clear_manual'].includes(operation)&&!['pending','doing'].includes(entity.status))throw new AppError('CLOSED_TASK','已完成或取消事项保留历史期限，请先重开',409);
+  if(operation==='calendar'&&entity.rule?.kind==='continuous')throw new AppError('CONTINUOUS_RULE_CHANGE_REQUIRED','持续性义务请通过规则变更修改区间边界日历',422);
+ }
+ createObligation(project_id:string,input:any){this.store.require('projects',project_id);const data=obligationSchema.parse(input);this.validateRule(project_id,data.rule);if(data.document_id){const d=this.store.require('documents',data.document_id);if(d.project_id!==project_id)throw new AppError('FOREIGN_PROJECT','文件不属于本项目');}if(data.source_type==='ai'){const d=this.store.require('documents',data.document_version_id!);if(d.project_id!==project_id)throw new AppError('FOREIGN_PROJECT','来源文件版本不属于本项目');if(d.state!=='parsed')throw new AppError('INVALID_SOURCE','来源文件尚未解析');if(data.document_id&&data.document_id!==d.id)throw new AppError('INVALID_SOURCE','文件与版本不匹配');if(d.text&&!d.text.includes(data.source_text))throw new AppError('INVALID_SOURCE','候选原文必须来自关联文件');}
+ const source_fingerprint=data.source_type==='ai'?createHash('sha256').update(JSON.stringify({document_version_id:data.document_version_id,locator:data.source_locator??null,clause_index:data.clause_index??null,source_text:data.source_text,title:data.title,description:data.description,obligor:data.obligor,rule:data.rule})).digest('hex'):null;
+ return this.store.transaction(()=>{if(source_fingerprint){const existing=this.store.all('obligations',{source_fingerprint})[0];if(existing)return {...existing,tasks:this.store.all('tasks',{obligation_id:existing.id}),duplicate:true};}const o=this.store.create('obligations',{...data,project_id,source_fingerprint});const tasks=this.generate(o);this.store.audit('obligations',o.id,'create',null,o);return {...o,tasks};});}
+ generate(o:any,windowEnd?:string){const today=businessToday(this.store.clock());const end=windowEnd||`${Number(today.slice(0,4))+1}${today.slice(4)}`;const occurrences=o.rule.kind==='recurring'?generateOccurrences(o.rule,this.context(),end):[{occurrence_key:'once',activated_on:today,...calculate(o.rule,this.context())}];const out=[];for(const item of occurrences){const existing=this.store.all('tasks',{obligation_id:o.id}).find(t=>t.occurrence_key===item.occurrence_key);if(existing){out.push(existing);continue;}out.push(this.store.create('tasks',{project_id:o.project_id,obligation_id:o.id,occurrence_key:item.occurrence_key,activated_on:item.activated_on,title:o.title,description:o.description,owner_label:o.owner_label,obligor:o.obligor,status:'pending',deadline_state:item.state,computed_due_on:item.computed_due_on,manual_due_on:null,effective_due_on:item.computed_due_on,calculation:item,rule_snapshot:o.rule,schedule_revision:1,sort_order:this.store.all('tasks',{project_id:o.project_id}).length,deleted_at:null,completed_on:null}));}return out;}
+ recomputed(t:any){const o=this.store.require('obligations',t.obligation_id);let calc:any;if(o.rule.kind==='recurring'){calc=generateOccurrences(o.rule,this.context(),t.activated_on?.slice(0,4)+'-12-31').find(x=>x.occurrence_key===t.occurrence_key)||{state:'needs_review',computed_due_on:null,missing_inputs:['周期规则变更后该期不再存在']};}else calc=calculate(o.rule,this.context());const effective=t.manual_due_on||calc.computed_due_on;const state=t.manual_due_on?'manual':calc.state;return {computed_due_on:calc.computed_due_on,effective_due_on:effective,deadline_state:state,calculation:calc,rule_snapshot:o.rule,schedule_revision:t.schedule_revision+((effective!==t.effective_due_on||state!==t.deadline_state)?1:0)};}
+ cancelQueued(t:any){for(const r of this.store.all('reminders',{task_id:t.id})){if(!['succeeded','mock_completed','unknown','cancelled'].includes(r.status))this.store.update('reminders',r.id,r.version,{status:'cancelled'});}}
+ transition(id:string,version:number,action:string,input:any){return this.store.transaction(()=>{const t=this.store.require('tasks',id);if(t.version!==version)throw new AppError('VERSION_CONFLICT','事项已更新，请刷新',409);let changes:any={};const open=['pending','doing'].includes(t.status);if(action==='complete'){if(!open)throw new AppError('INVALID_TRANSITION','只能完成未结束事项');changes={status:'done',completed_on:input.completed_on||businessToday(this.store.clock()),completed_by:'local_operator'};}else if(action==='cancel'){if(!open)throw new AppError('INVALID_TRANSITION','事项已经结束');if(!input.reason?.trim())throw new AppError('REASON_REQUIRED','取消需填写原因');changes={status:'cancelled'};}else {if(open)throw new AppError('INVALID_TRANSITION','事项尚未结束');if(!input.reason?.trim())throw new AppError('REASON_REQUIRED','重开需填写原因');changes={status:'pending',completed_on:null,...this.recomputed(t)};}
+ for(const eid of input.evidence_ids||[]){if(this.store.require('evidence',eid).task_id!==id)throw new AppError('FOREIGN_EVIDENCE','凭证不属于本事项');}const next=this.store.update('tasks',id,version,changes);this.cancelQueued(t);this.store.create('evidence',{task_id:id,project_id:t.project_id,action,note:input.note||input.notes||input.completion_note||'',reason:input.reason||'',document_id:input.document_id||null,evidence_ids:input.evidence_ids||[],completed_on:changes.completed_on??null,snapshot:t});this.store.audit('tasks',id,action,t,next,input.reason);return next;});}
+ preview(input:any){
+ const {operation,entity_id,version,reason}=input;
+ const changeSchemas:Record<string,z.ZodTypeAny>={
+  event:z.object({name:z.string().trim().min(1).max(300).optional(),occurred_on:businessDateSchema.nullable().optional(),event_type:z.string().trim().min(1).max(100).optional(),investor_label:z.string().max(200).optional(),status:z.enum(['confirmed','needs_review']).optional(),document_id:z.string().min(1).nullable().optional(),evidence:z.string().max(20000).optional()}).strict(),
+  rule:z.object({rule:deadlineRuleSchema}).strict(),
+  calendar:z.object({calendar_id:z.string().min(1),calendar_version:versionSchema}).strict(),
+  manual_due:z.object({manual_due_on:businessDateSchema}).strict(),
+  clear_manual:z.object({}).strict(),
+ };
+ if(!Object.hasOwn(changeSchemas,operation))throw new AppError('INVALID_CHANGES','变更操作无效');
+ const changes=changeSchemas[operation].parse(input.changes);
+ if(!reason?.trim())throw new AppError('REASON_REQUIRED','请输入变更原因');
+ const table=operation==='event'?'events':operation==='rule'||operation==='calendar'?'obligations':'tasks';
+ const entity=this.store.require(table,entity_id);
+ if(entity.version!==version)throw new AppError('VERSION_CONFLICT','基线版本已过期',409);
+ this.validateDeadlineOperation(entity,operation);
+ if(operation==='event'&&changes.document_id&&this.store.require('documents',changes.document_id).project_id!==entity.project_id)throw new AppError('FOREIGN_PROJECT','事件协议不属于本项目');
+ if(operation==='rule')this.validateRule(entity.project_id,changes.rule);
+ if(operation==='calendar'){const c=this.store.require('calendars',changes.calendar_id);if(!c.confirmed)throw new AppError('CALENDAR_UNCONFIRMED','请先确认日历');if(changes.calendar_version!==c.calendar_version)throw new AppError('CALENDAR_VERSION','日历版本不匹配');}
+ const beforeTasks=this.store.all('tasks').filter(t=>['pending','doing'].includes(t.status)&&(operation==='event'?t.project_id===entity.project_id:table==='obligations'?t.obligation_id===entity_id:t.id===entity_id));let affected:any[]=[];
+ // Evaluate on an uncommitted transaction, then deliberately roll back all temporary writes.
+ const sentinel=new Error('PREVIEW_ROLLBACK');try{this.store.transaction(()=>{this.applyEntity(table,entity,operation,changes);affected=beforeTasks.map(t=>{const now=this.store.require('tasks',t.id);const c=this.recomputed(now);return {task_id:t.id,title:t.title,old_due_on:t.effective_due_on,new_due_on:c.effective_due_on,old_state:t.deadline_state,new_state:c.deadline_state,manual_preserved:!!now.manual_due_on,computed_due_on:c.computed_due_on,cancel_reminders:c.schedule_revision!==t.schedule_revision};});throw sentinel;});}catch(e){if(e!==sentinel)throw e;}
+ const dependencies=Object.fromEntries(['events','calendars','obligations','tasks','projects'].flatMap(name=>this.store.all(name).map(x=>[`${name}:${x.id}`,x.version])));
+ return this.store.create('change_plans',{operation,entity_id,table,baseline_version:version,changes,reason,dependencies,affected_tasks:affected,affected,expires_at:new Date(this.store.clock().getTime()+900000).toISOString(),state:'preview',plan_id:null});}
+ private applyEntity(table:string,e:any,op:string,changes:any){this.validateDeadlineOperation(e,op);if(op==='manual_due')this.store.update('tasks',e.id,e.version,{manual_due_on:changes.manual_due_on,override_reason:changes.reason||''});else if(op==='clear_manual')this.store.update('tasks',e.id,e.version,{manual_due_on:null,override_reason:null});else if(op==='calendar'){const rule={...e.rule,convention:{...e.rule.convention,calendar_id:changes.calendar_id,calendar_version:changes.calendar_version}};this.store.update(table,e.id,e.version,{rule});}else this.store.update(table,e.id,e.version,changes);}
+ commit(id:string){return this.store.transaction(()=>{const p=this.store.require('change_plans',id);if(p.state==='committed')return p;if(p.expires_at<this.store.clock().toISOString())throw new AppError('PLAN_EXPIRED','变更计划已过期，请重新预览',409);const dependencyCount=['events','calendars','obligations','tasks','projects'].reduce((n,t)=>n+this.store.all(t).length,0);if(dependencyCount!==Object.keys(p.dependencies).length)throw new AppError('PLAN_STALE','预览后有新增依赖，请重新预览',409);for(const [key,v]of Object.entries(p.dependencies)){const [table,eid]=key.split(':');if(this.store.get(table,eid)?.version!==v)throw new AppError('PLAN_STALE','依赖数据已改变，请重新预览',409);}const entity=this.store.require(p.table,p.entity_id);this.applyEntity(p.table,entity,p.operation,p.changes);for(const a of p.affected_tasks){const t=this.store.require('tasks',a.task_id);const next=this.store.update('tasks',t.id,t.version,{...this.recomputed(t),...(p.operation==='manual_due'?{override_reason:p.reason}:{})});if(t.schedule_revision!==next.schedule_revision)this.cancelQueued(t);this.store.audit('tasks',t.id,'deadline_change',t,next,p.reason);}const after=this.store.require(p.table,p.entity_id);this.store.audit(p.table,p.entity_id,p.operation,entity,after,p.reason);if(p.table==='obligations')this.generate(after);return this.store.update('change_plans',id,p.version,{state:'committed',committed_at:this.store.clock().toISOString()});});}
+ rule(input:any):DeadlineRule{return deadlineRuleSchema.parse(input);}
+}

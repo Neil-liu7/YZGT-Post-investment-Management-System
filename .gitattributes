@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.md whitespace=-blank-at-eol
+*.cmd text eol=crlf
+*.command text eol=lf
+*.pdf binary
+*.docx binary
