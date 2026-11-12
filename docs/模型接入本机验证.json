@@ -1,0 +1,47 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T03:27:27.233Z",
+  "platform": "darwin",
+  "scope": "local_status_and_secret_scan",
+  "entry": "http://127.0.0.1:8765",
+  "backup": {
+    "directory": "backups/backup-1794453905417",
+    "files": 1,
+    "sealed": true
+  },
+  "runtime": {
+    "node": "22.22.2",
+    "llm_mode": "mock",
+    "outbound_mode": "mock",
+    "allow_external_model": false,
+    "scheduler_enabled": false
+  },
+  "model_status": {
+    "provider": "openai_compatible",
+    "model": "deepseek-flash",
+    "host": "api.deepseek.com",
+    "configured": true,
+    "ready": false
+  },
+  "browser": {
+    "channel": "chrome",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "status_refresh": true,
+    "page_errors": 0,
+    "screenshot": "var/live-ai-status.png"
+  },
+  "secret_scan": {
+    "status": "passed",
+    "files_scanned": 132,
+    "leaked_files": [],
+    "env_ignored": true
+  },
+  "notes": [
+    "仅只读检查本地主服务与页面，未触发模型调用",
+    "主服务未使用合成联调临时库",
+    "截图为本机生成产物，不纳入Git"
+  ]
+}

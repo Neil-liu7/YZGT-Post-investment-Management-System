@@ -1,0 +1,43 @@
+{
+  "status": "not_run",
+  "scope": "fixed_synthetic_channel_test",
+  "requested_live": false,
+  "channel": null,
+  "configuration": [
+    {
+      "channel": "email",
+      "configured": true,
+      "target_hash": "150e2172e67242fc143d75d4463b7cb86fae1587e998e4f4724b034f9d4b5492",
+      "masked_targets": [
+        "n***@g***.com"
+      ],
+      "issues": []
+    },
+    {
+      "channel": "feishu",
+      "configured": false,
+      "target_hash": null,
+      "masked_targets": [],
+      "issues": [
+        {
+          "code": "NOTIFICATION_NOT_CONFIGURED",
+          "message": "飞书群机器人地址未配置或格式无效。"
+        }
+      ]
+    }
+  ],
+  "new_transmission_attempts": 0,
+  "reused_existing": false,
+  "receipt_status": "not_confirmed",
+  "user_database_used": false,
+  "runtime": {
+    "llm_mode": "mock",
+    "allow_external_model": false,
+    "outbound_mode": "not_started",
+    "scheduler_enabled": false
+  },
+  "reason": "CONFIGURATION_CHECK_ONLY",
+  "recorded_at": "2026-11-12T05:17:19.592Z",
+  "elapsed_ms": 1,
+  "receipt_note": "传输接受仅表示SMTP服务器或机器人接口接受请求，不能证明收件人已看到；实际收件须人工确认。"
+}

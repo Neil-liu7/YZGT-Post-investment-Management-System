@@ -1,0 +1,194 @@
+{
+  "status": "demonstrated",
+  "recorded_at": "2026-11-12T09:45:07.924Z",
+  "scope": "用户授权的样例协议主应用演示，浏览器真实页面操作；模型与通知均为mock",
+  "project": {
+    "id": "e711666d-6dbf-4111-a0e5-7d1ca55e46b9",
+    "name": "样例协议全流程演示（合成数据）",
+    "url": "http://127.0.0.1:8765/projects/e711666d-6dbf-4111-a0e5-7d1ca55e46b9"
+  },
+  "source": {
+    "fixture": "tests/fixtures/agreement.txt",
+    "sha256": "4c6ad986e42644093ad2a2d0321d620680a520b3810c5f603bc816675e2951a1",
+    "document_id": "3e821e71-dc64-4f5f-85e4-f62f04556f46",
+    "url": "http://127.0.0.1:8765/documents/3e821e71-dc64-4f5f-85e4-f62f04556f46",
+    "original_text_verified": true
+  },
+  "assumptions": {
+    "synthetic": true,
+    "events": {
+      "signature": {
+        "name": "演示协议签署",
+        "occurred_on": "2026-08-07"
+      },
+      "payment": {
+        "name": "演示收到款项",
+        "occurred_on": "2026-11-06"
+      },
+      "closing": {
+        "name": "演示交割完成",
+        "occurred_on": "2026-11-01"
+      }
+    },
+    "calendar": {
+      "id": "8c7c9d66-ff2c-454c-b0f5-f9c1dc8f5238",
+      "name": "样例演示专用周末日历（非正式节假日日历）",
+      "start_on": "2026-01-01",
+      "end_on": "2027-12-31",
+      "weekend_only": true,
+      "official_holiday_calendar": false
+    },
+    "recurring_first_period_start": "2026-07-01",
+    "recurring_last_period_end": "2026-12-31",
+    "include_start_day": false,
+    "end_day_adjustment": "none"
+  },
+  "counts": {
+    "source_clauses": 5,
+    "candidates": 6,
+    "obligations": 6,
+    "tasks": 7,
+    "done": 1,
+    "pending": 6,
+    "uploaded_protocols": 1,
+    "uploaded_evidence_files": 1,
+    "completion_note_records": 1
+  },
+  "tasks": [
+    {
+      "id": "8b5d30ee-ac13-43d1-80c6-0f003c1343db",
+      "title": "完成实缴",
+      "due_on": "2029-12-31",
+      "status": "pending",
+      "occurrence_key": "once"
+    },
+    {
+      "id": "58a48085-7141-4a4b-8ea9-f59eb232fa2c",
+      "title": "提交登记材料",
+      "due_on": "2026-11-07",
+      "status": "pending",
+      "occurrence_key": "once"
+    },
+    {
+      "id": "f1f95667-3124-4b36-a9db-46c19ea25af4",
+      "title": "提供收款凭证",
+      "due_on": "2026-11-13",
+      "status": "pending",
+      "occurrence_key": "once"
+    },
+    {
+      "id": "9249c02b-55df-4b47-8446-5470a5b595a7",
+      "title": "提交申请",
+      "due_on": "2026-08-17",
+      "status": "done",
+      "occurrence_key": "once"
+    },
+    {
+      "id": "1c70f19c-8f87-443d-a843-c4fc1e4f4920",
+      "title": "提供交割文件",
+      "due_on": "2026-11-21",
+      "status": "pending",
+      "occurrence_key": "once"
+    },
+    {
+      "id": "eb24403c-abb1-452e-8d4c-429f68f3b018",
+      "title": "报送季度财务报表",
+      "due_on": "2026-10-30",
+      "status": "pending",
+      "occurrence_key": "2026-Q3"
+    },
+    {
+      "id": "96d539ab-9d3a-4838-9d63-d8578f74227e",
+      "title": "报送季度财务报表",
+      "due_on": "2027-01-30",
+      "status": "pending",
+      "occurrence_key": "2026-Q4"
+    }
+  ],
+  "review_url": "http://127.0.0.1:8765/extractions/1f956106-ad1b-4c63-a60f-c45d49049729/review",
+  "completion": {
+    "task_id": "9249c02b-55df-4b47-8446-5470a5b595a7",
+    "title": "提交申请",
+    "completed_on": "2026-11-12",
+    "url": "http://127.0.0.1:8765/tasks/9249c02b-55df-4b47-8446-5470a5b595a7",
+    "evidence_download_verified": true
+  },
+  "notifications": [
+    {
+      "id": "2cc0ac96-1b3b-4f34-97c7-765320249ce5",
+      "channel": "email",
+      "mode": "mock",
+      "status": "mock_completed",
+      "items": 7,
+      "attempts": [
+        {
+          "mode": "mock",
+          "status": "mock_completed"
+        }
+      ]
+    },
+    {
+      "id": "606b210a-4861-451e-9657-5f1968fe7866",
+      "channel": "feishu",
+      "mode": "mock",
+      "status": "mock_completed",
+      "items": 7,
+      "attempts": [
+        {
+          "mode": "mock",
+          "status": "mock_completed"
+        }
+      ]
+    }
+  ],
+  "notification_scope": "手动完整汇总含已完成事项；7项均属于演示项目",
+  "actual_model_requests": 0,
+  "actual_external_messages": 0,
+  "final_modes": {
+    "llm": "mock",
+    "outbound": "mock",
+    "scheduler": false,
+    "mail_enabled": false,
+    "feishu_enabled": false
+  },
+  "backup_before": {
+    "directory": "backups/backup-1794476191759",
+    "sealed": true,
+    "files": 3
+  },
+  "backup_after": {
+    "directory": "backups/backup-1794476692446",
+    "sealed": true,
+    "files": 5
+  },
+  "screenshots": [
+    "var/sample-demo/01-上传协议与原文.png",
+    "var/sample-demo/02-关键事件.png",
+    "var/sample-demo/03-演示工作日日历.png",
+    "var/sample-demo/04-六项待审核候选.png",
+    "var/sample-demo/05-审核工作日期限并预览.png",
+    "var/sample-demo/06-导入后七条执行事项.png",
+    "var/sample-demo/07-完成事项与凭证.png",
+    "var/sample-demo/08-项目看板.png",
+    "var/sample-demo/09-邮件模拟发送预览.png",
+    "var/sample-demo/10-邮件模拟完成.png",
+    "var/sample-demo/11-飞书模拟发送预览.png",
+    "var/sample-demo/12-飞书模拟完成.png",
+    "var/sample-demo/13-最终演示项目.png"
+  ],
+  "implementation_changed": false,
+  "tests_rerun": false,
+  "independent_readonly_review": {
+    "status": "passed",
+    "rule_dates_verified": true,
+    "two_actions_in_clause_four_separate": true,
+    "notification_items_exactly_demo_tasks": true,
+    "one_mock_attempt_per_channel": true,
+    "existing_project_records_unchanged": true,
+    "comparison_backup": "backups/backup-1794476191759",
+    "existing_project_rows_checked": 1,
+    "existing_document_rows_checked": 2,
+    "existing_clause_rows_checked": 40,
+    "existing_audit_rows_checked": 3
+  }
+}

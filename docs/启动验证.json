@@ -4,6 +4,6 @@
   "private_paths": "passed",
   "port_conflict": "passed",
   "production_txt_docx_pdf": "passed",
-  "os": "win32",
+  "os": "darwin",
   "port": 18965
 }

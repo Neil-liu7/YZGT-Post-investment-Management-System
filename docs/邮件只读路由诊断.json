@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-11-12T08:06:44.323Z",
+  "scope": "smtp_tls_and_banner_read_only",
+  "smtp_auth": false,
+  "mail_commands": false,
+  "configuration_modified": false,
+  "ledger_modified": false,
+  "results": [
+    {
+      "path": "native_dns_and_tcp_through_tun",
+      "smtp_auth": false,
+      "mail_commands": false,
+      "tls_verified": false,
+      "status": "ended_without_banner",
+      "elapsed_ms": 5016
+    },
+    {
+      "path": "explicit_http_connect_127.0.0.1_7897",
+      "smtp_auth": false,
+      "mail_commands": false,
+      "tls_verified": false,
+      "status": "ended_without_banner",
+      "proxy_status": 200,
+      "elapsed_ms": 5005
+    }
+  ]
+}

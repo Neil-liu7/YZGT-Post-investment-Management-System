@@ -1,0 +1,34 @@
+{
+  "status": "not_run",
+  "recorded_at": "2026-11-12T03:19:29.646Z",
+  "scope": "synthetic_only",
+  "provider": "openai_compatible",
+  "model": "deepseek-flash",
+  "host": "api.deepseek.com",
+  "fixture": {
+    "path": "tests/fixtures/agreement.txt",
+    "sha256": "4c6ad986e42644093ad2a2d0321d620680a520b3810c5f603bc816675e2951a1",
+    "bytes": 328
+  },
+  "candidate_count": 0,
+  "configured": true,
+  "requested_live": false,
+  "usage": {},
+  "response_metadata": [],
+  "checks": {},
+  "coverage": {},
+  "model_rule_types": {},
+  "unresolved_count": 0,
+  "manual_rules_applied": [],
+  "completed_steps": [],
+  "notifications": "mock",
+  "user_database_used": false,
+  "reason": "CONFIGURATION_CHECK_ONLY",
+  "configuration_issues": [
+    {
+      "code": "MODEL_DATA_NOT_AUTHORIZED",
+      "message": "尚未允许向外部模型发送协议数据。"
+    }
+  ],
+  "elapsed_ms": 7
+}

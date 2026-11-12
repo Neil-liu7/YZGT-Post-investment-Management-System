@@ -1,0 +1,92 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T09:14:42.512Z",
+  "scope": "P0第五项独立合成试运行",
+  "directory": "var/交付 演练 5WflGl",
+  "node": "22.22.2",
+  "os": "darwin",
+  "installation": {
+    "offline": true,
+    "packages": 425,
+    "exit_code": 0
+  },
+  "doctor": {
+    "exit_code": 0
+  },
+  "migration": {
+    "exit_code": 0
+  },
+  "build": {
+    "exit_code": 0
+  },
+  "isolation": {
+    "copied_real_credentials": false,
+    "copied_main_database": false,
+    "copied_attachments": false,
+    "copied_live_ledgers": false,
+    "configuration_from_example": true,
+    "configuration_permissions": "0600"
+  },
+  "production_start": {
+    "status": "passed",
+    "recorded_at": "2026-11-12T09:14:16.172Z",
+    "directory": "/Users/neilliu/Desktop/YZGT-Post-investment-Management-System/var/交付 演练 5WflGl",
+    "port": 18767,
+    "node": "22.22.2",
+    "empty_database": true,
+    "llm_mode": "mock",
+    "outbound_mode": "mock",
+    "scheduler_enabled": false,
+    "credentials_present": false,
+    "private_paths": "passed"
+  },
+  "business": {
+    "status": "passed",
+    "recorded_at": "2026-11-12T09:14:18.648Z",
+    "started_at": "2026-11-12T09:14:14.639Z",
+    "os": "darwin",
+    "arch": "arm64",
+    "node": "22.22.2",
+    "mode": "production bundle / synthetic data / mock model and notifications",
+    "chinese_paths_with_spaces": true,
+    "completed_steps": [
+      "生产构建启动、空库页面和模拟模式",
+      "创建项目、中文文件上传、解析和受控原件下载",
+      "模拟提取、原文定位、逐条确认期限及幂等导入",
+      "上传完成凭证、完成事项及审计留痕",
+      "自动提醒排除完成事项、阶段去重和手动模拟发送",
+      "生产服务重启后业务、原文、凭证与发送去重状态保留",
+      "一致性备份、CLI新目录恢复、原件摘要和完整关联核验"
+    ],
+    "counts": {
+      "projects": 1,
+      "documents": 2,
+      "clauses": 2,
+      "extractions": 1,
+      "drafts": 2,
+      "obligations": 2,
+      "tasks": 2,
+      "evidence": 2,
+      "notifications": 2,
+      "reminders": 1,
+      "attempts": 2,
+      "audit_logs": 10,
+      "idempotency_requests": 5
+    },
+    "live_model": "not_run",
+    "live_notifications": "not_run",
+    "user_database_used": false
+  },
+  "startup": {
+    "production_start": "passed",
+    "html_route": "passed",
+    "private_paths": "passed",
+    "port_conflict": "passed",
+    "production_txt_docx_pdf": "passed",
+    "os": "darwin",
+    "port": 18965
+  },
+  "live_model_calls": 0,
+  "live_notification_attempts": 0,
+  "user_database_used": false
+}

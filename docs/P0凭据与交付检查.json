@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T09:17:34.793Z",
+  "scope": "非忽略变更/新增文件、最终构建及P0相关日志；本机精确值与编码变体匹配，不外传",
+  "files_checked": 149,
+  "credential_matches": 0,
+  "configuration_ignored": true,
+  "configuration_permissions": "0600",
+  "real_configuration_printed": false,
+  "rehearsal_source_files": 100,
+  "rehearsal_source_matches_final": true,
+  "source_sha256": "9e0ad2133e0dbc76c0df17a0785b3c593f8dd09b33b152b1167e7d3124adeeef"
+}

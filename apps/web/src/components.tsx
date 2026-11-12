@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { api, message } from './api';
+import { api, allPages, message, pagePath, uploadLimit, uploadLimitLabel, type Entity, type Page } from './api';
 import s from './Workspace.module.css';
 
 export const labels: Record<string, string> = { pending: '待开始', doing: '进行中', done: '已完成', cancelled: '已取消', calculated: '已计算', waiting_event: '待事件', needs_review: '待确认', manual: '人工指定', stored: '已保存', parsing: '解析中', parsed: '已解析', parse_failed: '解析失败', needs_file: '缺失原件', queued: '排队中', running: '处理中', succeeded: '成功', success: '成功', sent: '已发送', mock_sent: '模拟完成', simulated: '模拟完成', partial: '部分成功', failed: '失败', unknown: '结果未知', skipped: '已跳过', approved: '已确认', ignored: '已忽略', draft: '待审核', confirmed: '已确认', mock_completed: '模拟完成', retry_wait: '等待重试', obsolete: '已废弃', sending: '发送中', committed: '已导入', rolled_back: '已回退', preview: '未提交' };
@@ -14,7 +14,19 @@ export function Modal({ title, children, close, wide = false }: { title: string;
 export function SaveForm({ children, onSave, label = '保存', cancel, submitDisabled = false }: { children: ReactNode; onSave: () => Promise<void>; label?: string; cancel: () => void; submitDisabled?: boolean }) { const [busy, setBusy] = useState(false); const [error, setError] = useState(''); async function submit(e: FormEvent) { e.preventDefault(); setBusy(true); setError(''); try { await onSave(); } catch (err) { setError(`未保存：${message(err)}`); } finally { setBusy(false); } } return <form onSubmit={submit} className={s.form}><fieldset disabled={busy}>{children}</fieldset>{error && <div role="alert" className={s.error}>{error}</div>}<footer><span className={s.muted}>{busy ? '正在保存…' : '以服务器保存结果为准'}</span><button type="button" onClick={cancel}>取消</button><button className={s.primary} disabled={busy || submitDisabled}>{busy ? '保存中…' : label}</button></footer></form>; }
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) { return <label className={s.field}><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>; }
 export function JsonView({ value }: { value: unknown }) { return <pre className={s.json}>{JSON.stringify(value, null, 2)}</pre>; }
-export function useResource<T>(path: string) { const [data, setData] = useState<T | null>(null); const [error, setError] = useState<unknown>(null); const [loading, setLoading] = useState(true); const [revision, setRevision] = useState(0); const reload = () => setRevision(x => x + 1); useEffect(() => { let alive = true; setLoading(true); setError(null); api<T>(path).then(v => { if (alive) setData(v); }).catch(e => { if (alive) setError(e); }).finally(() => { if (alive) setLoading(false); }); return () => { alive = false; }; }, [path, revision]); return { data, error, loading, reload }; }
+export function useResource<T>(path: string, load: (path: string) => Promise<T> = api) { const [data, setData] = useState<T | null>(null); const [error, setError] = useState<unknown>(null); const [loading, setLoading] = useState(true); const [revision, setRevision] = useState(0); const reload = () => setRevision(x => x + 1); useEffect(() => { let alive = true; setLoading(true); setError(null); load(path).then(v => { if (alive) setData(v); }).catch(e => { if (alive) setError(e); }).finally(() => { if (alive) setLoading(false); }); return () => { alive = false; }; }, [path, revision, load]); return { data, error, loading, reload }; }
+export function usePagedResource<T = Entity>(path: string, size = 20) {
+  const [page, setPage] = useState(1);
+  const resource = useResource<Page<T>>(pagePath(path, page, size));
+  useEffect(() => { setPage(1); }, [path]);
+  useEffect(() => { if (!resource.loading && resource.data) setPage(current => Math.min(current, Math.max(1, Math.ceil(resource.data!.total / size)))); }, [resource.loading, resource.data, size]);
+  return { ...resource, page, setPage, size };
+}
+export function useAllResource(path: string) { const resource = useResource<Page>(path, allPages); return { ...resource, data: resource.loading || resource.error ? null : resource.data }; }
+export function useUploadLimit() {
+  const resource = useResource<number>('/settings', uploadLimit);
+  return { ...resource, label: resource.data === null ? '正在读取上传上限…' : `单文件上限 ${uploadLimitLabel(resource.data)}`, require: async () => resource.data ?? await uploadLimit() };
+}
 export function Loading() { return <div role="status" className={s.loading}><span />正在读取服务器记录…</div>; }
 export function Crumb({ projectId, name }: { projectId: string; name?: string }) { return <Link className={s.back} to={`/projects/${projectId}`}>← {name ?? '返回项目工作台'}</Link>; }
 

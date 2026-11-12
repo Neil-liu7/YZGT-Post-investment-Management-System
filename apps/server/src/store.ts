@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { mkdirSync,readFileSync,readdirSync } from 'node:fs';
 import { dirname,resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-export const tables=['projects','documents','clauses','events','obligations','tasks','evidence','extractions','drafts','calendars','change_plans','idempotency_requests','reminders','notifications','attempts','scheduler_runs','digest_runs','settings','snapshots','legacy_mappings','imports','audit_logs'] as const;
+export const tables=['projects','documents','clauses','events','obligations','tasks','evidence','extractions','drafts','event_drafts','calendars','change_plans','idempotency_requests','reminders','notifications','attempts','scheduler_runs','digest_runs','settings','snapshots','legacy_mappings','imports','audit_logs'] as const;
 export class AppError extends Error {constructor(public code:string,message:string,public status=422,public details:unknown=null){super(message);}}
 export class Store {
  db:Database.Database; orm; schemas:Record<string,any>={};

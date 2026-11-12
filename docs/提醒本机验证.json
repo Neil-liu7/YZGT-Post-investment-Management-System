@@ -1,0 +1,157 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T08:24:08.670Z",
+  "entry": "http://127.0.0.1:8765",
+  "runtime": {
+    "llm_mode": "mock",
+    "outbound_mode": "mock",
+    "scheduler_enabled": false
+  },
+  "configured": {
+    "smtp": true,
+    "feishu": true
+  },
+  "backup": {
+    "directory": "backups/backup-1794471743615",
+    "sealed": true,
+    "files": 1
+  },
+  "dependencies": {
+    "node": "22.22.2",
+    "cache": "/Users/neilliu/.cache/yzgt-node22-20261112/node_modules",
+    "unit_tests": 356,
+    "test_files": 23,
+    "duration_seconds": 11.79,
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed",
+    "unit_log": "var/fourth-unit-recovery-final.log",
+    "build_log": "var/fourth-build-recovery-final.log",
+    "lint_log": "var/fourth-lint-recovery-final.log",
+    "latest_cli_validation": {
+      "unit_tests": 407,
+      "test_files": 23,
+      "duration_seconds": 12.29,
+      "typecheck": "passed",
+      "lint": "passed",
+      "build": "passed",
+      "unit_log": "var/fourth-unit-preflight-final.log",
+      "build_log": "var/fourth-build-preflight-final.log",
+      "lint_log": "var/fourth-lint-preflight-final.log"
+    }
+  },
+  "no_test_data_written_to_main": true,
+  "main_process_id": 15451,
+  "recovery_guards": {
+    "no_arguments": "not_run",
+    "test_environment": "TEST_OUTBOUND_BLOCKED",
+    "real_sends": 0
+  },
+  "email_recovery_preflight": {
+    "status": "ready_for_user_confirmation",
+    "recorded_at": "2026-11-12T06:58:18.148Z",
+    "read_only": true,
+    "original_batch_count": 1,
+    "original_attempt_count": 1,
+    "original_status": "unknown",
+    "recipient_matches_current_configuration": true,
+    "fixed_synthetic_content": true,
+    "no_business_data": true,
+    "target_lock": "absent",
+    "recovery_authorized": false,
+    "recovery_executed": false,
+    "snapshot_note": "此预检为首次恢复执行前的历史快照；执行结果见email_recovery_execution。"
+  },
+  "local_storage_follow_up": {
+    "project_keep_downloaded": true,
+    "verification": "Finder cmdUnpin and inherited cmdShowPinnedFolder",
+    "download_now_requested": true,
+    "materialization_status": "incomplete",
+    "critical_files_with_read_timeouts": [
+      ".env",
+      "apps/web/package.json",
+      "apps/server/package.json",
+      "packages/contracts/package.json",
+      "packages/domain/package.json"
+    ],
+    "additional_doctor": "cancelled_while_blocked_reading_apps_server_package_json",
+    "additional_doctor_exit_code": 137,
+    "additional_doctor_log": "var/fourth-doctor-storage-final.log",
+    "earlier_test_results_retained": true,
+    "running_main_service_unchanged": true,
+    "latest_bounded_read_check": {
+      "per_file_timeout_seconds": 2,
+      ".env": "readable",
+      "apps/server/package.json": "read_timeout",
+      "apps/web/package.json": "read_timeout",
+      "packages/contracts/package.json": "readable",
+      "packages/domain/package.json": "read_timeout"
+    },
+    "latest_startup_revalidation": {
+      "status": "passed",
+      "recorded_at": "2026-11-12T08:13:33.452089+00:00",
+      "doctor_exit_code": 0,
+      "doctor_log": "var/fourth-doctor-resumed.log",
+      "node": "22.22.2",
+      "llm_mode": "mock",
+      "outbound_mode": "mock",
+      "scheduler_enabled": false,
+      "note": "此前读取受阻的doctor137保留历史；本次关键文件恢复后重跑通过，不保证所有云端文件持续本地化。"
+    }
+  },
+  "email_recovery_execution": {
+    "status": "result_unknown",
+    "user_authorized_once": true,
+    "executed": true,
+    "new_transmission_attempts": 1,
+    "total_attempts": 2,
+    "first_unknown_preserved": true,
+    "third_attempt_authorized": false,
+    "report": "docs/真实提醒联调-email-人工恢复-1794470424134-2258c6a7-7bb3-4850-ab9d-ab7a7466666c.json"
+  },
+  "smtp_readiness": {
+    "status": "passed",
+    "smtp_authentication": "passed",
+    "recorded_at": "2026-11-12T08:11:28.516Z",
+    "message_sent": false,
+    "network_report": "docs/邮件网络修复-恢复后.json",
+    "authentication_report": "docs/邮件连接诊断-出口切换后.json"
+  },
+  "additional_recovery_read_only_preflight": {
+    "status": "ready_for_new_user_confirmation",
+    "expected_attempts": 2,
+    "batch_count": 1,
+    "attempt_count": 2,
+    "all_previous_attempts_unknown": true,
+    "default_baseline_rejected": true,
+    "explicit_expected_two_eligible": true,
+    "additional_attempt_authorized": false,
+    "third_attempt_executed": false,
+    "recorded_at": "2026-11-12T08:18:40.869Z",
+    "snapshot_note": "此为第三次发送前的历史预检；后续用户授权与执行结果见additional_recovery_execution。"
+  },
+  "additional_recovery_execution": {
+    "status": "live_passed",
+    "user_authorized_once": true,
+    "executed": true,
+    "new_transmission_attempts": 1,
+    "total_attempts": 3,
+    "previous_unknown_history_preserved": true,
+    "smtp_preflight": "passed",
+    "receipt_status": "confirmed_in_mailbox_api",
+    "report": "docs/真实提醒联调-email-人工恢复-1794471725397-8f4c43fe-056d-4505-9352-c4736e5df16c.json",
+    "fourth_attempt_blocked_for_baselines": [
+      1,
+      2
+    ]
+  },
+  "final_main_service": {
+    "entry": "http://127.0.0.1:8765",
+    "process_id": 15451,
+    "llm_mode": "mock",
+    "outbound_mode": "mock",
+    "scheduler_enabled": false,
+    "smtp_configured": true,
+    "feishu_configured": true
+  }
+}

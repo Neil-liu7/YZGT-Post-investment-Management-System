@@ -59,7 +59,7 @@ test('上传真实 TXT、审核原文和固定日期、确认导入幂等', asyn
   const download = page.waitForEvent('download');
   await page.getByRole('link', { name: '下载原件', exact: true }).click();
   expect((await download).suggestedFilename()).toBe('合成协议.txt');
-  await page.getByRole('button', { name: '提取候选义务', exact: true }).click();
+  await page.getByRole('button', { name: '一键提取事件与义务', exact: true }).click();
   await page.getByRole('button', { name: '核对并编辑', exact: true }).first().click();
   await page.getByLabel('候选标题').fill('经审核的实缴义务');
   await page.getByLabel('固定截止日').fill('2029-12-31');
@@ -69,7 +69,9 @@ test('上传真实 TXT、审核原文和固定日期、确认导入幂等', asyn
   const runId = page.url().split('/extractions/')[1].split('/')[0];
   const runResponse = await request.get(`/api/v1/extractions/${runId}`);
   const run = (await runResponse.json()).data;
-  await page.getByRole('button', { name: '确认导入 1 条', exact: true }).click();
+  await page.getByRole('button', { name: '预览确认结果', exact: true }).click();
+  await page.getByLabel('已核对所选候选和原文', { exact: true }).check();
+  await page.getByRole('button', { name: '确认生成正式记录', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('已确认导入 1 条候选');
   const repeated = await request.post(`/api/v1/extractions/${runId}/confirm`, { data: { draft_ids: [run.drafts[0].id] } });
   expect(repeated.ok()).toBeTruthy();

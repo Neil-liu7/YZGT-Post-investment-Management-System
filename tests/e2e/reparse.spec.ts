@@ -18,7 +18,7 @@ test('解析失败可重试并显示错误，修复原件后重新解析成功',
   await page.getByRole('button', { name: '重新解析原件', exact: true }).click();
   await expect(page.getByText('第一条 修复后原文完整，可重新解析并保留。', { exact: true })).toBeVisible();
   await expect(page.getByText('已解析', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '提取候选义务', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '一键提取事件与义务', exact: true })).toBeEnabled();
   const stored = (await (await request.get(`/api/v1/documents/${document.id}`)).json()).data;
   expect(stored.state).toBe('parsed');
 });

@@ -1,0 +1,10 @@
+{
+  "recorded_at": "2026-11-12T08:11:28.516Z",
+  "scope": "smtp_connection_and_authentication_only",
+  "message_sent": false,
+  "tls_certificate_validation": true,
+  "network_report": "docs/邮件网络修复-恢复后.json",
+  "status": "passed",
+  "smtp_authentication": "passed",
+  "elapsed_ms": 2579
+}

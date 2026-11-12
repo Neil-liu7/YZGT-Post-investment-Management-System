@@ -1,0 +1,136 @@
+{
+  "status": "transport_accepted",
+  "operation": "resend_unknown_once",
+  "scope": "fixed_synthetic_channel_test",
+  "user_database_used": false,
+  "channel": "email",
+  "manual_reason": "用户另行明确授权原批次再追加一次固定合成邮件尝试，总计不超过3次；保留两次unknown历史，自动提醒关闭。",
+  "configuration": {
+    "channel": "email",
+    "configured": true,
+    "target_hash": "150e2172e67242fc143d75d4463b7cb86fae1587e998e4f4724b034f9d4b5492",
+    "masked_targets": [
+      "n***@g***.com"
+    ],
+    "issues": []
+  },
+  "audit_directory": "var/live-notifications/email/150e2172e67242fc143d75d4463b7cb86fae1587e998e4f4724b034f9d4b5492",
+  "expected_attempts": 2,
+  "new_transmission_attempts": 1,
+  "receipt_status": "receipt_pending",
+  "queue_calls": 1,
+  "smtp_preflight": {
+    "status": "passed",
+    "scope": "smtp_connection_and_authentication_only",
+    "message_sent": false
+  },
+  "runtime": {
+    "source": "TypeScript source via tsx",
+    "node": "22.22.2",
+    "llm_mode": "mock",
+    "allow_external_model": false,
+    "outbound_mode": "live",
+    "scheduler_enabled": false,
+    "server_started": false
+  },
+  "before": {
+    "status": "result_unknown",
+    "transport_state": "unknown",
+    "receipt_status": "not_confirmed",
+    "batch_count": 1,
+    "attempt_count": 2,
+    "checks": {
+      "exactly_one_batch": true,
+      "accepted_attempt_recorded": true,
+      "live_mode": true,
+      "test_message_only": true,
+      "no_automatic_reminders": true,
+      "no_business_data": true,
+      "expected_unknown_attempts": true
+    },
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T05:17:57.180Z",
+        "finished_at": "2026-11-12T05:17:57.413Z",
+        "external_id_hash": null
+      },
+      {
+        "attempt_number": 2,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T08:00:24.436Z",
+        "finished_at": "2026-11-12T08:00:29.487Z",
+        "external_id_hash": null
+      }
+    ],
+    "runtime_provenance": {
+      "mode": "live",
+      "purpose": "test",
+      "content_items": 0,
+      "reminder_count": 0
+    },
+    "expected_attempts": 2
+  },
+  "before_snapshot_sha256": "55e3a7042a598b0fc650b5bc66fd4adf6b3022b83c7351a8881d6d589d90697f",
+  "initial_report": {
+    "path": "docs/真实提醒联调-email.json",
+    "sha256": "d97179601b59cceb925e5d39ba377c4d7596353e60863df9b7206f6ac9f3b36b"
+  },
+  "after": {
+    "status": "transport_accepted",
+    "receipt_status": "receipt_pending",
+    "transport_state": "succeeded",
+    "checks": {
+      "same_single_batch": true,
+      "exactly_one_new_attempt": true,
+      "original_unknown_preserved": true,
+      "new_live_attempt": true,
+      "unique_attempt_ids": true,
+      "fixed_test_and_target": true,
+      "no_business_data": true,
+      "result_recorded": true
+    },
+    "expected_attempts": 2,
+    "batch_count": 1,
+    "attempt_count": 3,
+    "new_transmission_attempts": 1,
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T05:17:57.180Z",
+        "finished_at": "2026-11-12T05:17:57.413Z",
+        "external_id_hash": null
+      },
+      {
+        "attempt_number": 2,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T08:00:24.436Z",
+        "finished_at": "2026-11-12T08:00:29.487Z",
+        "external_id_hash": null
+      },
+      {
+        "attempt_number": 3,
+        "status": "succeeded",
+        "mode": "live",
+        "started_at": "2026-11-12T08:22:08.493Z",
+        "finished_at": "2026-11-12T08:22:12.252Z",
+        "external_id_hash": "d1d18e9b735fac2ed8e74566999faac624ddcc824bb724ef70a3353c15e62cd6"
+      }
+    ],
+    "runtime_provenance": {
+      "mode": "live",
+      "purpose": "test",
+      "content_items": 0,
+      "reminder_count": 0
+    }
+  },
+  "recorded_at": "2026-11-12T08:22:12.268Z",
+  "elapsed_ms": 6871,
+  "receipt_note": "既往尝试送达仍未知；本次传输接受仅代表服务器或机器人接口接受，实际收件仍须人工确认。"
+}

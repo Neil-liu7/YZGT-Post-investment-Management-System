@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFile } from 'node:fs/promises';
-import { parseDocument, extractCandidates, candidateSchema, normalizeRecipients, sendOutbound } from '../../packages/integrations/src/index.ts';
+import { parseDocument, extractCandidates, candidateSchema, normalizeRecipients, feishuRecipientKey, sendOutbound } from '../../packages/integrations/src/index.ts';
 
 describe('document parsing and guarded extraction', () => {
   it('retains paragraph locations and splits two deadlines without inventing an anchor', async () => {
@@ -36,7 +36,7 @@ describe('document parsing and guarded extraction', () => {
   it('keeps successful GLM chunks reviewable when another chunk times out, using an isolated transport', async () => {
     const first = '公司应提交资料。';
     const result = await extractCandidates([{ text: first, locator: { paragraph: 1 } }, { text: '公司应报送另一个文件。', locator: { paragraph: 2 } }], {
-      LLM_MODE: 'live', ALLOW_EXTERNAL_MODEL: 'true', GLM_API_KEY: 'synthetic-not-a-key', GLM_MODEL: 'synthetic', chunk_chars: 10, retry_delay_ms: 0,
+      LLM_MODE: 'live', LLM_PROVIDER: 'glm', ALLOW_EXTERNAL_MODEL: 'true', GLM_API_KEY: 'synthetic-not-a-key', GLM_MODEL: 'synthetic', chunk_chars: 10, retry_delay_ms: 0,
       fetcher: async (_url: string, options: any) => {
         const prompt = JSON.parse(JSON.parse(options.body).messages[1].content);
         if (prompt[0].clause_index === 1) throw new DOMException('synthetic timeout', 'TimeoutError');
@@ -62,13 +62,13 @@ describe('outbound guard and recipients', () => {
   it('A33 blocks real model and channel transports under the automated test environment', async () => {
     const trap = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('隔离传输禁止网络连接'));
     try {
-      await expect(extractCandidates('应报送资料', { LLM_MODE: 'live', ALLOW_EXTERNAL_MODEL: 'true', GLM_API_KEY: 'synthetic', GLM_MODEL: 'synthetic' })).rejects.toThrow(/自动测试/);
+      await expect(extractCandidates('应报送资料', { LLM_MODE: 'live', LLM_PROVIDER: 'glm', ALLOW_EXTERNAL_MODEL: 'true', GLM_API_KEY: 'synthetic', GLM_MODEL: 'synthetic' })).rejects.toThrow(/自动测试/);
       const denied = await sendOutbound({ channel: 'feishu', mode: 'live', content: { subject: '合成', body: '测试' }, recipient_key: 'x' }, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic' });
       expect(denied).toMatchObject({ status: 'failed', retryable: false }); expect(denied.error).toContain('自动测试');
     } finally { trap.mockRestore(); }
   });
   it.each([new TypeError('fetch failed synthetic secret'), Object.assign(new Error('reset synthetic secret'), { code: 'ECONNRESET' }), Object.assign(new Error('aborted'), { code: 'ECONNABORTED' })])('classifies an uncertain Feishu network interruption as unknown without exposing transport details', async error => {
-    const result = await sendOutbound({ channel: 'feishu', mode: 'live', content: { subject: '合成', body: '测试' }, recipient_key: 'synthetic' }, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic', fetcher: async () => { throw error; } });
+    const result = await sendOutbound({ channel: 'feishu', mode: 'live', content: { subject: '合成', body: '测试' }, recipient_key: feishuRecipientKey('https://open.feishu.cn/open-apis/bot/v2/hook/synthetic') }, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic', fetcher: async () => { throw error; } });
     expect(result.status).toBe('unknown'); expect(result.error).not.toContain('synthetic secret');
   });
 });

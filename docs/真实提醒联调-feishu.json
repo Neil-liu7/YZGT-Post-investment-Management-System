@@ -1,0 +1,69 @@
+{
+  "status": "transport_accepted",
+  "scope": "fixed_synthetic_channel_test",
+  "requested_live": true,
+  "channel": "feishu",
+  "configuration": [
+    {
+      "channel": "feishu",
+      "configured": true,
+      "target_hash": "77c7b911d28cdf0c5a27e0265bfc8b34cdaf30dd0c9dea4441bf21c638ff0bb7",
+      "masked_targets": [
+        "已配置的飞书测试群"
+      ],
+      "issues": []
+    }
+  ],
+  "new_transmission_attempts": 0,
+  "reused_existing": true,
+  "receipt_status": "receipt_pending",
+  "user_database_used": false,
+  "runtime": {
+    "llm_mode": "mock",
+    "allow_external_model": false,
+    "outbound_mode": "not_started",
+    "scheduler_enabled": false
+  },
+  "audit_directory": "var/live-notifications/feishu/77c7b911d28cdf0c5a27e0265bfc8b34cdaf30dd0c9dea4441bf21c638ff0bb7",
+  "target_hash": "77c7b911d28cdf0c5a27e0265bfc8b34cdaf30dd0c9dea4441bf21c638ff0bb7",
+  "masked_targets": [
+    "已配置的飞书测试群"
+  ],
+  "audit": {
+    "status": "transport_accepted",
+    "transport_state": "succeeded",
+    "receipt_status": "receipt_pending",
+    "batch_count": 1,
+    "attempt_count": 1,
+    "checks": {
+      "exactly_one_batch": true,
+      "exactly_one_attempt": true,
+      "accepted_attempt_recorded": true,
+      "live_mode": true,
+      "test_message_only": true,
+      "no_automatic_reminders": true,
+      "no_business_data": true
+    },
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "status": "succeeded",
+        "mode": "live",
+        "started_at": "2026-11-12T06:25:59.537Z",
+        "finished_at": "2026-11-12T06:26:01.143Z",
+        "external_id_hash": null
+      }
+    ],
+    "runtime_provenance": {
+      "mode": "live",
+      "purpose": "test",
+      "content_items": 0,
+      "reminder_count": 0
+    }
+  },
+  "transport_state": "succeeded",
+  "reason": "EXISTING_AUDIT_NO_RESEND",
+  "recorded_at": "2026-11-12T06:32:53.468Z",
+  "elapsed_ms": 4846,
+  "receipt_note": "传输接受仅表示SMTP服务器或机器人接口接受请求，不能证明收件人已看到；实际收件须人工确认。"
+}

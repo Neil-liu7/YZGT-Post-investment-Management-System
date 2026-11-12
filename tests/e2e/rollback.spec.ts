@@ -9,7 +9,7 @@ test('迁移预览确认后预览回退影响并回退未修改批次', async ({
   await page.getByRole('button', { name: '生成迁移预览', exact: true }).click();
   await expect(page.getByRole('heading', { name: '迁移对账预览', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '确认导入本次预览', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('迁移已确认');
+  await expect(page.getByRole('status').filter({ hasText: '迁移已确认' })).toBeVisible();
   const row = page.locator('tr').filter({ hasText: namespace });
   await row.getByRole('button', { name: '回退本批次', exact: true }).click();
   await page.getByLabel('回退原因', { exact: true }).fill('合成验收完成，回退本次迁移');

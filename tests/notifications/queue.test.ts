@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -18,6 +18,59 @@ function setup(date = '2026-11-10T00:00:00Z', options: any = {}) {
   return { store, service, project, task, setTime: (value: string) => { now = new Date(value); } };
 }
 describe('persistent notification occurrences and queue', () => {
+  it('rejects a Feishu preview when its configured group changed before enqueue', () => {
+    const first = setup(undefined, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic-a' });
+    const preview = first.service.preview({ channel: 'feishu', purpose: 'test' });
+    const restarted = new NotificationService(first.store, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic-b' });
+    expect(() => restarted.sendSnapshot({ snapshot_id: preview.id })).toThrow(/接收目标.*变化/);
+    expect(first.store.all('notifications')).toHaveLength(0);
+  });
+
+  it.each(['manual', 'test'])('fails an already queued %s Feishu batch with a changed group without transmission', async purpose => {
+    const trap = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Real network forbidden'));
+    try {
+      const adapter = vi.fn(async () => ({ status: 'succeeded' }));
+      const first = setup(undefined, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic-a', adapter });
+      const preview = first.service.preview({ channel: 'feishu', purpose });
+      const batch = first.service.sendSnapshot({ snapshot_id: preview.id });
+      const restarted = new NotificationService(first.store, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic-b', adapter });
+      await restarted.processQueue();
+      expect(first.store.require('notifications', batch.id)).toMatchObject({ status: 'failed', attempts: 0 });
+      expect(first.store.all('attempts')).toHaveLength(0); expect(adapter).not.toHaveBeenCalled(); expect(trap).not.toHaveBeenCalled();
+    } finally { trap.mockRestore(); }
+  });
+
+  it('rechecks the original group when a human authorizes resending an unknown automatic batch', async () => {
+    const adapter = vi.fn(async () => ({ status: 'unknown' }));
+    const first = setup(undefined, { OUTBOUND_MODE: 'live', SCHEDULER_ENABLED: true, FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic-a', adapter });
+    first.task(); const batch = first.service.scan({ recovery: true }).notifications[0];
+    await first.service.processQueue();
+    first.service.resolveUnknown(batch.id, { action: 'resend', reason: '合成人工核查决定' });
+    const retry = vi.fn(async () => ({ status: 'succeeded' }));
+    const restarted = new NotificationService(first.store, { OUTBOUND_MODE: 'live', SCHEDULER_ENABLED: true, FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic-b', adapter: retry });
+    await restarted.processQueue();
+    expect(first.store.require('notifications', batch.id).status).toBe('failed'); expect(retry).not.toHaveBeenCalled();
+    expect(first.store.all('attempts')).toHaveLength(1);
+  });
+
+  it('uses a synthetic recipient for blank mock configuration while preserving explicitly cleared recipients', async () => {
+    const s = setup(undefined, { MAIL_TO: '   ' });
+    const preview = s.service.preview({ channel: 'email' });
+    expect(preview.recipients).toEqual(['mock@example.invalid']);
+    const notification = s.service.sendSnapshot({ snapshot_id: preview.id });
+    await s.service.processQueue();
+    expect(s.store.get('notifications', notification.id).status).toBe('mock_completed');
+    const cleared = s.service.preview({ channel: 'email', recipients: '' });
+    expect(cleared.recipients).toEqual([]);
+    expect(() => s.service.sendSnapshot({ snapshot_id: cleared.id })).toThrow('接收目标未配置');
+  });
+  it('keeps live email unavailable when recipient configuration is blank', () => {
+    const s = setup(undefined, { OUTBOUND_MODE: 'live', MAIL_TO: '' });
+    const preview = s.service.preview({ channel: 'email' });
+    expect(preview.recipients).toEqual([]);
+    expect(() => s.service.sendSnapshot({ snapshot_id: preview.id })).toThrow('接收目标未配置');
+    expect(s.store.all('notifications')).toHaveLength(0);
+  });
   it('A20 sends each successive current stage once across one unchanged schedule', async () => {
     const s = setup(); s.task('阶段事项', { effective_due_on: '2026-12-10' });
     for (const date of ['2026-11-10T02:00:00Z', '2026-12-03T02:00:00Z', '2026-12-09T02:00:00Z', '2026-12-10T02:00:00Z', '2026-12-11T02:00:00Z']) {

@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T02:59:59.364Z",
+  "started_at": "2026-11-12T02:59:56.322Z",
+  "os": "darwin",
+  "arch": "arm64",
+  "node": "22.22.2",
+  "mode": "production bundle / synthetic data / mock model and notifications",
+  "chinese_paths_with_spaces": true,
+  "completed_steps": [
+    "生产构建启动、空库页面和模拟模式",
+    "创建项目、中文文件上传、解析和受控原件下载",
+    "模拟提取、原文定位、逐条确认期限及幂等导入",
+    "上传完成凭证、完成事项及审计留痕",
+    "自动提醒排除完成事项、阶段去重和手动模拟发送",
+    "生产服务重启后业务、原文、凭证与发送去重状态保留",
+    "一致性备份、CLI新目录恢复、原件摘要和完整关联核验"
+  ],
+  "counts": {
+    "projects": 1,
+    "documents": 2,
+    "clauses": 2,
+    "extractions": 1,
+    "drafts": 2,
+    "obligations": 2,
+    "tasks": 2,
+    "evidence": 2,
+    "notifications": 2,
+    "reminders": 1,
+    "attempts": 2,
+    "audit_logs": 10,
+    "idempotency_requests": 5
+  },
+  "live_model": "not_run",
+  "live_notifications": "not_run",
+  "user_database_used": false
+}

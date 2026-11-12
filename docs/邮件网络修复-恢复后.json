@@ -1,0 +1,85 @@
+{
+  "recorded_at": "2026-11-12T08:10:46.305248+00:00",
+  "scope": {
+    "host": "smtp.gmail.com",
+    "port": 465,
+    "smtp_auth": false,
+    "mail_commands": false,
+    "ledger_modified": false
+  },
+  "status": "passed",
+  "old_target_hash": "dc3fcc2d5be5",
+  "new_target_hash": "640528893767",
+  "backup": {
+    "directory": "/Users/neilliu/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/yzgt-smtp-route-recovery-713000ae",
+    "directory_mode": "0700",
+    "files_mode": "0600",
+    "runtime_sha256": "222595805d7261bde5cd61d920903c5c2c7db5ae7f3d2372ab929350fe9dceac",
+    "fragment_sha256": "ebe773f0fcd64f176efdfe8cbae6608bbc4b0d42bff823cf7e74827ea78bcb3c"
+  },
+  "before": {
+    "mode": "rule",
+    "tun_enabled": true,
+    "ports": {
+      "mixed-port": 7897,
+      "port": 0,
+      "socks-port": 0,
+      "redir-port": 0,
+      "tproxy-port": 0
+    },
+    "manual_selectors": {
+      "e7440dd384f1": "640528893767",
+      "8ed5f54b71d0": "a295efcbec7a"
+    }
+  },
+  "validation_exit_code": 0,
+  "reload_status": 204,
+  "after": {
+    "mode": "rule",
+    "tun_enabled": true,
+    "ports": {
+      "mixed-port": 7897,
+      "port": 0,
+      "socks-port": 0,
+      "redir-port": 0,
+      "tproxy-port": 0
+    },
+    "manual_selectors": {
+      "e7440dd384f1": "640528893767",
+      "8ed5f54b71d0": "a295efcbec7a"
+    }
+  },
+  "protected_state_unchanged": true,
+  "runtime_precise_rule": {
+    "count": 1,
+    "target_hash": "640528893767",
+    "type": "AND"
+  },
+  "probe": {
+    "smtp_auth": false,
+    "mail_commands": false,
+    "tls_verified": true,
+    "path": "native_tcp_through_existing_main_tun",
+    "tls_version": "TLSv1.3",
+    "banner_code": "220",
+    "gmail_service": true,
+    "status": "tls_and_220_confirmed",
+    "elapsed_ms": 1217
+  },
+  "unrelated_runtime_fields_unchanged": true,
+  "unrelated_fragment_fields_unchanged": true,
+  "unrelated_rules_unchanged": true,
+  "rolled_back": false,
+  "completed_at": "2026-11-12T08:10:47.647631+00:00",
+  "route_observation": [
+    {
+      "time": "2026-11-12T16:10:47.206543000+08:00",
+      "level": "info",
+      "and_rule": true,
+      "node_hashes": [
+        "640528893767"
+      ],
+      "deadline_exceeded": false
+    }
+  ]
+}

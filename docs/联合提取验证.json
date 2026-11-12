@@ -1,0 +1,111 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T10:16:33.620Z",
+  "scope": "联合提取事件/义务规则、可选prompt和统一审核确认；本地单人版",
+  "node": "22.22.2",
+  "os": "darwin",
+  "checks": {
+    "unit": {
+      "passed": 558,
+      "files": 32,
+      "duration_seconds": 19.94,
+      "log": "var/joint-full-unit-release.log"
+    },
+    "chrome_e2e": {
+      "passed": 44,
+      "duration_seconds": 53,
+      "log": "var/joint-full-e2e-release.log"
+    },
+    "typecheck": {
+      "status": "passed",
+      "included_in": "npm run build"
+    },
+    "build": {
+      "status": "passed",
+      "log": "var/joint-build-release.log"
+    },
+    "lint": {
+      "status": "passed",
+      "log": "var/joint-lint-release.log"
+    },
+    "review": {
+      "status": "passed",
+      "unresolved_p1_p2": 0,
+      "scope": "root通读、后端/模型互审、前后端契约、维护及历史台账兼容；日期误绑/否定/材料日期等发现已修复并回归"
+    },
+    "credential_review": {
+      "status": "passed",
+      "report": "docs/联合提取凭据检查.json",
+      "files_checked": 248
+    },
+    "production_ui": {
+      "status": "passed",
+      "scope": "updated production UI read-only; no extraction started",
+      "page_errors": 0,
+      "prompt_maxlength": 4000,
+      "new_joint_button_present": true,
+      "legacy_extraction_link_retained": true
+    }
+  },
+  "new_tests": {
+    "model_and_contract": 47,
+    "backend": 24,
+    "frontend_data": 8,
+    "maintenance_compatibility": 7,
+    "chrome": 10
+  },
+  "production_pipeline": {
+    "report": "docs/联合提取生产验证.json",
+    "status": "passed",
+    "provider_transport": "stubbed provider transport",
+    "real_model_requests": 0,
+    "real_notification_messages": 0
+  },
+  "runtime": {
+    "recorded_at": "2026-11-12T10:16:00.171Z",
+    "entry": "http://127.0.0.1:8765",
+    "pid": 35373,
+    "schema_version": 5,
+    "pre_upgrade_schema_version": 4,
+    "pre_upgrade_backup": {
+      "directory": "backups/backup-before-joint-1794477858850",
+      "files": 5,
+      "sealed": true,
+      "schema_version": 4,
+      "source_opened_readonly": true,
+      "counts": {
+        "projects": 2,
+        "documents": 4,
+        "obligations": 6,
+        "tasks": 7,
+        "events": 3,
+        "notifications": 2,
+        "attempts": 2
+      }
+    },
+    "existing_business_tables_unchanged": 22,
+    "existing_records_preserved": true,
+    "no_formal_records_created_by_upgrade": true,
+    "event_drafts": 0,
+    "llm_mode": "mock",
+    "outbound_mode": "mock",
+    "scheduler_enabled": false,
+    "mail_enabled": false,
+    "feishu_enabled": false,
+    "live_notification_ledgers_unchanged": true,
+    "live_ledgers_kept_schema4": true
+  },
+  "limitations": {
+    "real_model_joint_prompt_verification": "not_run",
+    "current_model_mode": "mock",
+    "current_notification_mode": "mock",
+    "automatic_reminders": "disabled",
+    "windows_current_version": "not_rerun",
+    "ocr": "not_implemented"
+  },
+  "git": {
+    "branch": "codex/joint-extraction",
+    "base_commit": "b43dbb4",
+    "scope": "本轮功能及此前本项目尚未提交的已核验开发成果；不含真实配置、数据、附件、备份或生成产物"
+  }
+}

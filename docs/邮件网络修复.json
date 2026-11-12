@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "performed_at": "2026-11-12T06:38:52.352495+00:00",
+  "scope": {
+    "host": "smtp.gmail.com",
+    "port": 465,
+    "target_node_hash": "dc3fcc2d5be5",
+    "smtp_auth": false,
+    "mail_commands": false,
+    "project_env_read": false,
+    "unknown_ledger_modified": false
+  },
+  "status": "passed",
+  "backup": {
+    "directory": "/Users/neilliu/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/yzgt-smtp-network-backup-ln7eik9n",
+    "directory_mode": "0700",
+    "files": [
+      {
+        "name": "runtime-before.yaml",
+        "mode": "0600",
+        "sha256": "b6b553e93c5276a30556b60aae896fc9ae35869c1091696e7b9acc0f1c736968"
+      },
+      {
+        "name": "rules-before.yaml",
+        "mode": "0600",
+        "sha256": "dba97bbe30c1ac41866ca20ee679e39b1eda5718860c8520e813eaf3464cde08"
+      }
+    ]
+  },
+  "configuration": {
+    "persistent_rules_path": "/Users/neilliu/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/profiles/ra7MUtZ3Yfxr.yaml",
+    "runtime_path": "/Users/neilliu/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev/clash-verge.yaml",
+    "current_profile_uid": "Rf4KwImmJlLy",
+    "target_node_definition_matches_subscription": true,
+    "unrelated_runtime_fields_unchanged": true,
+    "unrelated_fragment_fields_unchanged": true,
+    "original_rules_count": 62,
+    "new_rules_count": 63,
+    "precise_rule_occurrences": 1,
+    "before": {
+      "mode": "rule",
+      "tun_enabled": true,
+      "ports": {
+        "mixed-port": 7897,
+        "port": 0,
+        "socks-port": 0,
+        "redir-port": 0,
+        "tproxy-port": 0
+      },
+      "selectors": {
+        "e7440dd384f1": "640528893767",
+        "8ed5f54b71d0": "a295efcbec7a"
+      }
+    },
+    "after": {
+      "mode": "rule",
+      "tun_enabled": true,
+      "ports": {
+        "mixed-port": 7897,
+        "port": 0,
+        "socks-port": 0,
+        "redir-port": 0,
+        "tproxy-port": 0
+      },
+      "selectors": {
+        "e7440dd384f1": "640528893767",
+        "8ed5f54b71d0": "a295efcbec7a"
+      }
+    },
+    "settings_unchanged": true,
+    "manual_selectors_unchanged": true,
+    "automatic_selection_changed_count": 0,
+    "final_protected_state_unchanged": true
+  },
+  "validation": {
+    "command": "existing verge-mihomo -t",
+    "exit_code": 0
+  },
+  "reload": {
+    "method": "PUT",
+    "endpoint": "/configs?force=false",
+    "same_original_path": true,
+    "status": 204
+  },
+  "rule_check": {
+    "matching_rule_count": 1,
+    "rule_type": "AND",
+    "target_node_hash": "dc3fcc2d5be5",
+    "smtp_port": 465
+  },
+  "probe": {
+    "target": "smtp.gmail.com",
+    "port": 465,
+    "path": "native TCP through existing TUN",
+    "smtp_auth": false,
+    "mail_commands": false,
+    "tls_verified": true,
+    "tls_version": "TLSv1.2",
+    "banner_bytes": 74,
+    "banner_code": "220",
+    "gmail_service": true,
+    "status": "tls_and_smtp_confirmed",
+    "elapsed_ms": 521
+  },
+  "route_observation": [
+    {
+      "and_rule": true,
+      "target_node_hash": "dc3fcc2d5be5",
+      "type": "info"
+    }
+  ],
+  "completed_at": "2026-11-12T06:38:53.920538+00:00"
+}

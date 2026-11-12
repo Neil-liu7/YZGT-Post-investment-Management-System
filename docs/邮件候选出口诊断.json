@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-11-12T08:09:10.057511+00:00",
+  "scope": "isolated_existing_subscription_smtp_tls_and_banner_only",
+  "smtp_auth": false,
+  "mail_commands": false,
+  "main_proxy_modified": false,
+  "ledger_modified": false,
+  "temporary_processes_and_configuration_cleaned": true,
+  "results": [
+    {
+      "candidate_hash": "640528893767",
+      "type": "anytls",
+      "tun_enabled": false,
+      "loopback_only": true,
+      "temporary_directory_mode": "0700",
+      "temporary_configuration_mode": "0600",
+      "result": {
+        "smtp_auth": false,
+        "mail_commands": false,
+        "tls_verified": true,
+        "proxy_status": 200,
+        "tls_version": "TLSv1.3",
+        "banner_code": "220",
+        "gmail_service": true,
+        "status": "tls_and_220_confirmed",
+        "elapsed_ms": 2624
+      },
+      "repeat": {
+        "smtp_auth": false,
+        "mail_commands": false,
+        "tls_verified": true,
+        "proxy_status": 200,
+        "tls_version": "TLSv1.3",
+        "banner_code": "220",
+        "gmail_service": true,
+        "status": "tls_and_220_confirmed",
+        "elapsed_ms": 1258
+      }
+    }
+  ]
+}

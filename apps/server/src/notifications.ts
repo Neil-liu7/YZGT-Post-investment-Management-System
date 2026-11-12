@@ -1,7 +1,6 @@
-import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { businessToday, daysBetween, isoWeek, reminderStage } from '../../../packages/domain/src/index.ts';
-import { normalizeRecipients, recipientKey, sendOutbound, type OutboundResult } from '../../../packages/integrations/src/index.ts';
+import { normalizeRecipients, recipientKey, feishuRecipientKey, sendOutbound, type OutboundResult } from '../../../packages/integrations/src/index.ts';
 import { AppError, type Store } from './store.ts';
 
 type Row = Record<string, any>;
@@ -12,7 +11,6 @@ const previewSchema = z.object({ channel: z.enum(['email', 'feishu']).optional()
 const sendSchema = z.object({ snapshot_id: z.string().min(1), subject: z.string().min(1).max(500).optional(), body: z.string().max(1000000).optional(), recipients: recipientInputSchema.optional(), allow_stale: z.boolean().optional(), mode: z.enum(['mock', 'live']).optional() });
 const terminal = new Set(['succeeded', 'mock_completed', 'unknown']);
 const open = new Set(['pending', 'doing']);
-const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const clip = (value: unknown, size = 1000) => String(value ?? '').slice(0, size);
 
 export class NotificationService {
@@ -29,9 +27,10 @@ export class NotificationService {
     if (!['email', 'feishu'].includes(channel)) throw new AppError('INVALID_CHANNEL', '通知渠道无效。');
     if (channel === 'feishu') {
       const webhook = this.env('FEISHU_WEBHOOK_URL');
-      return { recipient_key: webhook ? `feishu:${hash(webhook)}` : 'mock:feishu', recipients: [] as string[], available: mode === 'mock' || Boolean(webhook), target_label: mode === 'mock' && !webhook ? '模拟飞书群' : '已配置飞书群' };
+      return { recipient_key: webhook ? feishuRecipientKey(webhook) : 'mock:feishu', recipients: [] as string[], available: mode === 'mock' || Boolean(webhook), target_label: mode === 'mock' && !webhook ? '模拟飞书群' : '已配置飞书群' };
     }
-    const recipients = normalizeRecipients(requested ?? this.env('MAIL_TO') ?? (mode === 'mock' ? 'mock@example.invalid' : ''));
+    const recipients = normalizeRecipients(requested ?? this.env('MAIL_TO') ?? '');
+    if (requested === undefined && !recipients.length && mode === 'mock') recipients.push('mock@example.invalid');
     return { recipient_key: `email:${recipientKey(recipients)}`, recipients, available: recipients.length > 0, target_label: recipients.join(', ') };
   }
   private eligible(task: Row, today: string, projects?: Map<string, Row>) {
@@ -153,13 +152,19 @@ export class NotificationService {
     const today = businessToday(this.clock()), policy = this.setting(); const valid: Row[] = [];
     const target = this.target(batch.channel, batch.mode);
     const channelEnabled = batch.channel === 'feishu' ? policy.feishu_enabled : policy.mail_enabled;
-    let changed = !channelEnabled || !target.available || target.recipient_key !== batch.recipient_key || batch.policy_revision !== policy.policy_revision;
+    // Email membership is sealed per week. The shared revision may change only a
+    // Feishu setting; mail eligibility and its frozen target are checked directly.
+    let changed = !channelEnabled || !target.available || target.recipient_key !== batch.recipient_key
+      || (batch.channel === 'feishu' && batch.policy_revision !== policy.policy_revision)
+      || (batch.channel === 'email' && !batch.reminder_ids?.length && !policy.send_empty);
     for (const id of batch.reminder_ids ?? []) {
       const r = this.store.get('reminders', id); const task = r ? this.store.get('tasks', r.task_id) : null;
-      let okay = Boolean(channelEnabled && r && task && this.eligible(task, today) && (task.schedule_revision ?? 1) === r.schedule_revision && r.policy_revision === policy.policy_revision && target.recipient_key === r.recipient_key && target.available);
+      const owned = r && r.notification_id === batch.id && ['queued', 'retry_wait'].includes(r.status);
+      let okay = Boolean(channelEnabled && owned && task && this.eligible(task, today) && (task.schedule_revision ?? 1) === r.schedule_revision
+        && (batch.channel === 'email' || r.policy_revision === policy.policy_revision) && target.recipient_key === r.recipient_key && target.available);
       if (okay && batch.channel === 'feishu') okay = reminderStage(daysBetween(today, task.effective_due_on), policy.lead_days) === r.stage && policy.feishu_enabled;
       if (okay && batch.channel === 'email') okay = daysBetween(today, task.effective_due_on) <= 7 && policy.mail_enabled;
-      if (!okay) { changed = true; if (r) this.store.update('reminders', r.id, r.version, { status: 'cancelled', notification_id: null, cancel_reason: '发送前重新校验失效' }); }
+      if (!okay) { changed = true; if (owned) this.store.update('reminders', r.id, r.version, { status: 'cancelled', notification_id: null, cancel_reason: '发送前重新校验失效' }); }
       else {
         valid.push(r);
         const item = batch.content.items.find((i: Row) => i.task_id === task.id);
@@ -172,23 +177,41 @@ export class NotificationService {
     if (released.length) this.batchChunks(released, batch.channel, batch.mode, target, { digest_run_id: batch.digest_run_id, replaces_notification_id: batch.id });
     return true;
   }
-  async processQueue() {
+  async processQueue(maxBatches = 1000) {
     const results: Row[] = [];
-    const now = this.clock().toISOString();
+    const now = this.clock().toISOString(), currentWeek = isoWeek(businessToday(this.clock()));
     this.store.transaction(() => {
       for (const batch of this.store.all('notifications').filter(n => n.status === 'sending' && n.lease_until <= now)) {
         this.finish(batch, { status: 'unknown', error: '发送进程中断或租约过期，请人工核查。' });
         for (const attempt of this.store.all('attempts', { notification_id: batch.id }).filter(a => a.status === 'sending')) this.store.update('attempts', attempt.id, attempt.version, { status: 'unknown', finished_at: now });
       }
+      // A disabled plan may resume within its sealed week, but never backfill an
+      // old week's automatic email. In-flight and unknown results remain intact.
+      for (const batch of this.store.all('notifications').filter(n => n.channel === 'email' && n.purpose === 'automatic' && !n.manual_resend_authorized && ['queued', 'retry_wait'].includes(n.status))) {
+        const digest = batch.digest_run_id ? this.store.get('digest_runs', batch.digest_run_id) : null;
+        if (!digest?.iso_week || digest.iso_week >= currentWeek) continue;
+        this.store.update('notifications', batch.id, batch.version, { status: 'obsolete', obsolete_reason: '周报周期已过，不补发旧周报', lease_until: null, next_attempt_at: null, completed_at: now });
+        for (const id of batch.reminder_ids ?? []) {
+          const reminder = this.store.get('reminders', id);
+          if (reminder?.notification_id === batch.id && ['queued', 'retry_wait'].includes(reminder.status)) this.store.update('reminders', reminder.id, reminder.version, { status: 'cancelled', notification_id: null, cancel_reason: '周报周期已过，不补发旧周报' });
+        }
+      }
     });
-    for (let guard = 0; guard < 1000; guard++) {
+    for (let guard = 0; guard < maxBatches; guard++) {
       const schedulerEnabled = this.env('SCHEDULER_ENABLED') === true || this.env('SCHEDULER_ENABLED') === 'true';
-      const candidate = this.store.all('notifications').find(n => ['queued', 'retry_wait'].includes(n.status) && (!n.next_attempt_at || n.next_attempt_at <= this.clock().toISOString()) && !(n.mode === 'live' && n.purpose === 'automatic' && !schedulerEnabled));
+      const policy = this.setting();
+      const candidate = this.store.all('notifications').find(n => ['queued', 'retry_wait'].includes(n.status) && (!n.next_attempt_at || n.next_attempt_at <= this.clock().toISOString())
+        && !(n.mode === 'live' && this.env('OUTBOUND_MODE') !== 'live')
+        && !(n.purpose === 'automatic' && !n.manual_resend_authorized && ((n.mode === 'live' && !schedulerEnabled) || !(n.channel === 'feishu' ? policy.feishu_enabled : policy.mail_enabled))));
       if (!candidate) break;
       let batch: Row | null = null; let attempt: Row | null = null;
       this.store.transaction(() => {
         const fresh = this.store.get('notifications', candidate.id);
         if (!['queued', 'retry_wait'].includes(fresh.status)) return;
+        if (fresh.mode === 'live' && fresh.channel === 'feishu' && this.target('feishu', 'live').recipient_key !== fresh.recipient_key) {
+          results.push(this.finish(fresh, { status: 'failed', retryable: false, error_code: 'RECIPIENT_CHANGED', error: '飞书接收目标已变化，旧批次已停止；请重新预览后发送。' }));
+          return;
+        }
         if (fresh.purpose === 'automatic' && !fresh.manual_resend_authorized && this.invalidation(fresh)) return;
         batch = this.store.update('notifications', fresh.id, fresh.version, { status: 'sending', attempts: (fresh.attempts ?? 0) + 1, lease_until: new Date(this.clock().getTime() + 60000).toISOString() });
         attempt = this.store.create('attempts', { notification_id: fresh.id, attempt_number: batch!.attempts, status: 'sending', started_at: this.clock().toISOString(), mode: fresh.mode });
@@ -202,7 +225,7 @@ export class NotificationService {
         const fresh = this.store.get('notifications', claimed.id);
         // A slow worker must not overwrite a lease already resolved as unknown.
         if (fresh.status !== 'sending') return;
-        this.store.update('attempts', started.id, started.version, { status: outcome.status, finished_at: this.clock().toISOString(), error: outcome.error ?? null, external_id: outcome.external_id ?? null });
+        this.store.update('attempts', started.id, started.version, { status: outcome.status, finished_at: this.clock().toISOString(), error: outcome.error ?? null, error_code: outcome.error_code ?? null, external_id: outcome.external_id ?? null });
         results.push(this.finish(fresh, outcome));
       });
     }
@@ -211,7 +234,7 @@ export class NotificationService {
   private finish(batch: Row, result: OutboundResult) {
     const retry = result.status === 'failed' && result.retryable && batch.attempts < 3;
     const status = retry ? 'retry_wait' : result.status;
-    const updated = this.store.update('notifications', batch.id, batch.version, { status, lease_until: null, next_attempt_at: retry ? new Date(this.clock().getTime() + (batch.attempts === 1 ? 60000 : 300000)).toISOString() : null, last_error: result.error ?? null, external_id: result.external_id ?? null, completed_at: terminal.has(status) || status === 'failed' ? this.clock().toISOString() : null });
+    const updated = this.store.update('notifications', batch.id, batch.version, { status, lease_until: null, next_attempt_at: retry ? new Date(this.clock().getTime() + (batch.attempts === 1 ? 60000 : 300000)).toISOString() : null, last_error: result.error ?? null, last_error_code: result.error_code ?? null, external_id: result.external_id ?? null, completed_at: terminal.has(status) || status === 'failed' ? this.clock().toISOString() : null });
     for (const id of batch.reminder_ids ?? []) {
       const r = this.store.get('reminders', id); if (r) this.store.update('reminders', r.id, r.version, { status });
     }
@@ -234,6 +257,7 @@ export class NotificationService {
     if (stale && !options.allow_stale) throw new AppError('SNAPSHOT_STALE', '预览后数据已变化，请重新生成预览或明确发送已编辑快照。', 409);
     const mode = this.mode(options.mode ?? snapshot.mode);
     const target = this.target(snapshot.channel, mode, options.recipients ?? snapshot.recipients);
+    if (snapshot.channel === 'feishu' && target.recipient_key !== snapshot.recipient_key) throw new AppError('RECIPIENT_CHANGED', '飞书接收目标已变化，请重新生成预览后再发送。', 409);
     if (!target.available) throw new AppError('RECIPIENT_NOT_CONFIGURED', '接收目标未配置。');
     const subject = options.subject ?? snapshot.content.subject, body = options.body ?? snapshot.content.body;
     if (typeof subject !== 'string' || !subject.trim() || /[\r\n]/.test(subject) || typeof body !== 'string' || body.length > 1000000) throw new AppError('INVALID_MESSAGE', '消息主题或正文无效。');
@@ -250,6 +274,7 @@ export class NotificationService {
       const batch = this.store.get('notifications', id);
       if (!batch) throw new AppError('NOT_FOUND', '通知不存在。', 404);
       if (batch.status !== 'unknown') throw new AppError('INVALID_NOTIFICATION_STATE', '只有结果未知的通知可以执行核查处理。', 409);
+      if (options.action === 'resend') this.mode(batch.mode);
       let updated: Row;
       if (options.action === 'mark_succeeded') updated = this.finish(batch, { status: 'succeeded' });
       else updated = this.store.update('notifications', id, batch.version, { status: 'queued', lease_until: null, next_attempt_at: null, manual_resend_authorized: true });

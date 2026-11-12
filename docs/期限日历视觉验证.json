@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T02:59:32.504Z",
+  "browser": "157.0.8103.78",
+  "desktop": "1440x1100",
+  "mobile": "390x844",
+  "calendar_mobile_no_overflow": true,
+  "deadline_mobile_no_overflow": true,
+  "computed_preview": "2026-12-08",
+  "page_errors": [],
+  "screenshots": [
+    "var/calendar-desktop.png",
+    "var/calendar-mobile.png",
+    "var/deadline-desktop.png",
+    "var/deadline-mobile.png"
+  ],
+  "synthetic_only": true,
+  "user_database_used": false
+}

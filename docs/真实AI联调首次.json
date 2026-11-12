@@ -1,0 +1,221 @@
+{
+  "status": "live_passed",
+  "recorded_at": "2026-11-12T03:16:13.976Z",
+  "scope": "synthetic_only",
+  "provider": "openai_compatible",
+  "model": "deepseek-flash",
+  "host": "api.deepseek.com",
+  "fixture": {
+    "path": "tests/fixtures/agreement.txt",
+    "sha256": "4c6ad986e42644093ad2a2d0321d620680a520b3810c5f603bc816675e2951a1",
+    "bytes": 328
+  },
+  "candidate_count": 6,
+  "configured": true,
+  "requested_live": true,
+  "usage": {
+    "prompt_tokens": 1402,
+    "completion_tokens": 766,
+    "total_tokens": 2168,
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 1402
+  },
+  "response_metadata": [
+    {
+      "chunk_index": 0,
+      "request_id": "c17480cc-d522-44c2-8a8f-d4d163903791",
+      "response_id": "c17480cc-d522-44c2-8a8f-d4d163903791",
+      "model": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 1402,
+        "completion_tokens": 766,
+        "total_tokens": 2168,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1402
+      }
+    }
+  ],
+  "checks": {
+    "source_and_schema": true,
+    "human_review_required": true,
+    "no_automatic_obligations": true,
+    "confirmation_idempotent": true,
+    "fixture_deadlines": true
+  },
+  "coverage": {
+    "fixed_date": {
+      "passed": true,
+      "candidate_present": true,
+      "source_temporal_supported": true,
+      "model_rule_type": "fixed",
+      "model_structured_time_matches": true,
+      "requires_manual_rule": false
+    },
+    "signing_three_months": {
+      "passed": true,
+      "candidate_present": true,
+      "source_temporal_supported": true,
+      "model_rule_type": null,
+      "model_structured_time_matches": null,
+      "requires_manual_rule": true
+    },
+    "receipt_five_workdays": {
+      "passed": true,
+      "candidate_present": true,
+      "source_temporal_supported": true,
+      "model_rule_type": null,
+      "model_structured_time_matches": null,
+      "requires_manual_rule": true
+    },
+    "same_clause_two_actions": {
+      "passed": true,
+      "distinct_candidates": true,
+      "submit_application": {
+        "passed": true,
+        "candidate_present": true,
+        "source_temporal_supported": true,
+        "model_rule_type": null,
+        "model_structured_time_matches": null,
+        "requires_manual_rule": true
+      },
+      "provide_files": {
+        "passed": true,
+        "candidate_present": true,
+        "source_temporal_supported": true,
+        "model_rule_type": null,
+        "model_structured_time_matches": null,
+        "requires_manual_rule": true
+      }
+    },
+    "quarterly_reporting": {
+      "passed": true,
+      "candidate_present": true,
+      "source_temporal_supported": true,
+      "model_rule_type": null,
+      "model_structured_time_matches": null,
+      "requires_manual_rule": true
+    }
+  },
+  "model_rule_types": {
+    "fixed": 1,
+    "null": 5
+  },
+  "unresolved_count": 6,
+  "manual_rules_applied": [
+    {
+      "scenario": "fixed_date",
+      "model_rule_type": "fixed",
+      "confirmed_rule_type": "fixed",
+      "expected_due_on": [
+        "2029-12-31"
+      ]
+    },
+    {
+      "scenario": "signing_three_months",
+      "model_rule_type": null,
+      "confirmed_rule_type": "relative",
+      "expected_due_on": [
+        "2026-11-07"
+      ]
+    },
+    {
+      "scenario": "receipt_five_workdays",
+      "model_rule_type": null,
+      "confirmed_rule_type": "relative",
+      "expected_due_on": [
+        "2026-11-13"
+      ]
+    },
+    {
+      "scenario": "submit_application",
+      "model_rule_type": null,
+      "confirmed_rule_type": "relative",
+      "expected_due_on": [
+        "2026-08-17"
+      ]
+    },
+    {
+      "scenario": "provide_files",
+      "model_rule_type": null,
+      "confirmed_rule_type": "relative",
+      "expected_due_on": [
+        "2026-11-21"
+      ]
+    },
+    {
+      "scenario": "quarterly_reporting",
+      "model_rule_type": null,
+      "confirmed_rule_type": "recurring",
+      "expected_due_on": [
+        "2026-10-30",
+        "2027-01-30"
+      ]
+    }
+  ],
+  "completed_steps": [
+    "isolated_production_service",
+    "live_candidates_validated_before_review",
+    "synthetic_review_and_deadlines_confirmed",
+    "repeated_confirmation_deduplicated"
+  ],
+  "notifications": "mock",
+  "user_database_used": false,
+  "prompt_version": "obligations-v2",
+  "extraction_state": "succeeded",
+  "candidate_summary": [
+    {
+      "source_clause": 1,
+      "title": "完成实缴",
+      "action": "完成",
+      "deliverable": "实缴",
+      "model_rule_type": "fixed",
+      "unresolved_count": 1
+    },
+    {
+      "source_clause": 2,
+      "title": "提交登记材料",
+      "action": "提交",
+      "deliverable": "登记材料",
+      "model_rule_type": null,
+      "unresolved_count": 1
+    },
+    {
+      "source_clause": 3,
+      "title": "提供凭证",
+      "action": "提供",
+      "deliverable": "凭证",
+      "model_rule_type": null,
+      "unresolved_count": 1
+    },
+    {
+      "source_clause": 4,
+      "title": "提交申请",
+      "action": "提交",
+      "deliverable": "申请",
+      "model_rule_type": null,
+      "unresolved_count": 1
+    },
+    {
+      "source_clause": 4,
+      "title": "提供文件",
+      "action": "提供",
+      "deliverable": "文件",
+      "model_rule_type": null,
+      "unresolved_count": 1
+    },
+    {
+      "source_clause": 5,
+      "title": "报送财务报表",
+      "action": "报送",
+      "deliverable": "财务报表",
+      "model_rule_type": null,
+      "unresolved_count": 1
+    }
+  ],
+  "coverage_interpretation": "核验动作拆分、真实原文期限依据和已输出结构化期限的一致性；null规则保留人工补齐，不作为模型正确生成期限。",
+  "coverage_status": "passed",
+  "manual_confirmation_scope": "仅按项目确定性合成样例补齐事件、日历和首期；这些日期验证证明人工审核闭环，不等于模型独立生成了正确截止日。",
+  "confirmed_obligations": 6,
+  "execution_tasks": 7,
+  "elapsed_ms": 4535
+}

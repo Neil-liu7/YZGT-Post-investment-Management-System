@@ -1,0 +1,111 @@
+{
+  "status": "result_unknown",
+  "operation": "resend_unknown_once",
+  "scope": "fixed_synthetic_channel_test",
+  "user_database_used": false,
+  "channel": "email",
+  "manual_reason": "经Gmail查询尚未找到测试邮件；用户明确授权人工重发一次合成测试消息，保留首次unknown历史。",
+  "configuration": {
+    "channel": "email",
+    "configured": true,
+    "target_hash": "150e2172e67242fc143d75d4463b7cb86fae1587e998e4f4724b034f9d4b5492",
+    "masked_targets": [
+      "n***@g***.com"
+    ],
+    "issues": []
+  },
+  "audit_directory": "var/live-notifications/email/150e2172e67242fc143d75d4463b7cb86fae1587e998e4f4724b034f9d4b5492",
+  "new_transmission_attempts": 1,
+  "receipt_status": "not_confirmed",
+  "queue_calls": 1,
+  "runtime": {
+    "source": "TypeScript source via tsx",
+    "node": "22.22.2",
+    "llm_mode": "mock",
+    "allow_external_model": false,
+    "outbound_mode": "live",
+    "scheduler_enabled": false,
+    "server_started": false
+  },
+  "before": {
+    "status": "result_unknown",
+    "transport_state": "unknown",
+    "receipt_status": "not_confirmed",
+    "batch_count": 1,
+    "attempt_count": 1,
+    "checks": {
+      "exactly_one_batch": true,
+      "exactly_one_attempt": true,
+      "accepted_attempt_recorded": true,
+      "live_mode": true,
+      "test_message_only": true,
+      "no_automatic_reminders": true,
+      "no_business_data": true
+    },
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T05:17:57.180Z",
+        "finished_at": "2026-11-12T05:17:57.413Z",
+        "external_id_hash": null
+      }
+    ],
+    "runtime_provenance": {
+      "mode": "live",
+      "purpose": "test",
+      "content_items": 0,
+      "reminder_count": 0
+    }
+  },
+  "before_snapshot_sha256": "3a66a63ca216444af6a050d7b6dc5d4b282d498ea971b074bf24e01d628d2590",
+  "initial_report": {
+    "path": "docs/真实提醒联调-email.json",
+    "sha256": "d97179601b59cceb925e5d39ba377c4d7596353e60863df9b7206f6ac9f3b36b"
+  },
+  "recorded_at": "2026-11-12T08:00:29.495Z",
+  "elapsed_ms": 5361,
+  "receipt_note": "首次送达仍未知；本次传输接受仅代表服务器或机器人接口接受，实际收件仍须人工确认。",
+  "after": {
+    "status": "result_unknown",
+    "receipt_status": "not_confirmed",
+    "transport_state": "unknown",
+    "checks": {
+      "same_single_batch": true,
+      "exactly_one_new_attempt": true,
+      "original_unknown_preserved": true,
+      "second_live_attempt": true,
+      "fixed_test_and_target": true,
+      "no_business_data": true,
+      "result_recorded": true
+    },
+    "batch_count": 1,
+    "attempt_count": 2,
+    "new_transmission_attempts": 1,
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T05:17:57.180Z",
+        "finished_at": "2026-11-12T05:17:57.413Z",
+        "external_id_hash": null
+      },
+      {
+        "attempt_number": 2,
+        "status": "unknown",
+        "mode": "live",
+        "started_at": "2026-11-12T08:00:24.436Z",
+        "finished_at": "2026-11-12T08:00:29.487Z",
+        "external_id_hash": null
+      }
+    ],
+    "runtime_provenance": {
+      "mode": "live",
+      "purpose": "test",
+      "content_items": 0,
+      "reminder_count": 0
+    }
+  }
+}

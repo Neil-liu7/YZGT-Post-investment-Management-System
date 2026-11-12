@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T10:17:41.850Z",
+  "scope": "扫描时点的全部Git非忽略文件、最终构建和联合提取相关日志；真实凭据仅本机RAM匹配",
+  "files_checked": 248,
+  "git_files_checked": 178,
+  "credential_matches": 0,
+  "forbidden_git_paths": 0,
+  "configuration_ignored": true,
+  "configuration_permissions": "0600",
+  "secrets_printed": false,
+  "external_transfer": false
+}

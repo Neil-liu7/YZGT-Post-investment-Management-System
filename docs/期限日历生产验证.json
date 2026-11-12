@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T03:01:35.724Z",
+  "url": "http://127.0.0.1:8765",
+  "health": {
+    "status": "ok",
+    "mode": "local",
+    "database": "ok",
+    "outbound_mode": "mock",
+    "llm_mode": "mock"
+  },
+  "calendar_form": "passed",
+  "recurring_preview": [
+    "2026-10-30",
+    "2027-01-30",
+    "2027-04-30"
+  ],
+  "page_errors": [],
+  "user_business_data_changed": false
+}

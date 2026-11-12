@@ -1,0 +1,120 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T09:15:19.191Z",
+  "scope": "P0第五项RV01-RV10补修及合成试运行准备",
+  "os": "darwin",
+  "node": "22.22.2",
+  "checks": {
+    "unit": {
+      "passed": 472,
+      "files": 28,
+      "duration_seconds": 14.54,
+      "log": "var/p0-full-unit-final.log"
+    },
+    "chrome_e2e": {
+      "passed": 34,
+      "duration_seconds": 51.2,
+      "log": "var/p0-full-e2e.log"
+    },
+    "typecheck": {
+      "status": "passed",
+      "included_in": "npm run build"
+    },
+    "lint": {
+      "status": "passed",
+      "log": "var/p0-full-lint-final.log"
+    },
+    "build": {
+      "status": "passed",
+      "log": "var/p0-full-build.log"
+    },
+    "independent_review": {
+      "status": "passed",
+      "unresolved_p1_p2": 0,
+      "scope": "后端、上传契约、前端、CLI/运行时、演练复制；含未跟踪文件全文"
+    },
+    "credential_and_delivery_review": {
+      "status": "passed",
+      "report": "docs/P0凭据与交付检查.json",
+      "files_checked": 149
+    }
+  },
+  "fixed_reviews": [
+    "RV01",
+    "RV02",
+    "RV03",
+    "RV04",
+    "RV05",
+    "RV06",
+    "RV07",
+    "RV08",
+    "RV09",
+    "RV10"
+  ],
+  "new_unit_cases": 65,
+  "new_chrome_cases": 12,
+  "rehearsal_report": "docs/P0试运行验证.json",
+  "runtime": {
+    "recorded_at": "2026-11-12T09:15:19.190Z",
+    "node": "22.22.2",
+    "pid": 57672,
+    "entry": "http://127.0.0.1:8765",
+    "llm_mode": "mock",
+    "outbound_mode": "mock",
+    "scheduler_enabled": false,
+    "mail_enabled": false,
+    "feishu_enabled": false,
+    "max_upload_bytes": 20971520,
+    "configured": {
+      "glm": false,
+      "llm": true,
+      "feishu": true,
+      "smtp": true
+    },
+    "environment_defaults_verified": true,
+    "backup": {
+      "directory": "backups/backup-1794474882405",
+      "sealed": true,
+      "files": 1
+    },
+    "live_ledgers_unchanged": true,
+    "live_ledger_summary": {
+      "email": [
+        {
+          "batches": 1,
+          "attempts": 3,
+          "statuses": [
+            "unknown",
+            "unknown",
+            "succeeded"
+          ],
+          "batch_statuses": [
+            "succeeded"
+          ],
+          "ledger_hash": "f6fa3431085156575cf0ba80440371feffa829a4e867d779c4cd1884d2a45296"
+        }
+      ],
+      "feishu": [
+        {
+          "batches": 1,
+          "attempts": 1,
+          "statuses": [
+            "succeeded"
+          ],
+          "batch_statuses": [
+            "succeeded"
+          ],
+          "ledger_hash": "d2b7065421cdf29dd45bc672ace5f1fe33f37601db695f46d1c91705fe90f339"
+        }
+      ]
+    },
+    "main_database_matches_sealed_backup": true,
+    "main_database_tables_checked": 23,
+    "final_health_checked_at": "2026-11-12T09:18:32.872Z"
+  },
+  "live_model_calls": 0,
+  "live_notification_attempts": 0,
+  "windows": "not_rerun",
+  "real_contract_trial": "not_run",
+  "automatic_business_notifications": "disabled"
+}

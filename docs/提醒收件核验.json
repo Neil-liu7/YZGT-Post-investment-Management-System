@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-11-12T08:24:08.668Z",
+  "scope": "synthetic_only",
+  "feishu": {
+    "status": "live_passed",
+    "transport_report": "docs/真实提醒联调-feishu.json",
+    "receipt_status": "confirmed_in_group_ui",
+    "verification_method": "native_computer_use_accessibility_tree",
+    "group_name": "投后管理系统-联调测试",
+    "bot_name": "投后提醒-联调机器人",
+    "human_members": 1,
+    "keyword": "投后提醒",
+    "observed_title": "投后提醒 · 投后管理渠道测试",
+    "observed_body": "这是一条投后管理系统渠道测试消息。",
+    "observed_local_time": "2026-11-12 14:26 Asia/Shanghai",
+    "batch_count": 1,
+    "attempt_count": 1
+  },
+  "email": {
+    "status": "live_passed",
+    "transport_report": "docs/真实提醒联调-email-人工恢复-1794471725397-8f4c43fe-056d-4505-9352-c4736e5df16c.json",
+    "receipt_status": "confirmed_in_mailbox_api",
+    "latest_gmail_subject_search_matches": 1,
+    "search_scope": "2026-11-12 sender_and_recipient_self exact_test_subject",
+    "automatic_resend": false,
+    "manual_recovery_authorized": true,
+    "manual_recovery_executed": true,
+    "manual_recovery_attempts_added": 2,
+    "batch_count": 1,
+    "attempt_count": 3,
+    "recovery_report": "docs/真实提醒联调-email-人工恢复-1794471725397-8f4c43fe-056d-4505-9352-c4736e5df16c.json",
+    "third_attempt_authorized": true,
+    "connected_gmail_matches_authorized_account": true,
+    "verification_method": "connected_gmail_full_message_headers_body_and_inbox_labels",
+    "observed_subject": "投后管理渠道测试",
+    "observed_body": "这是一条投后管理系统渠道测试消息。",
+    "observed_local_time": "2026-11-12 16:22:08 Asia/Shanghai",
+    "gmail_message_id_hash": "efa8486388eb9d68b22cc14186575882dba079e284e9e669f7e610d00c664b28",
+    "smtp_message_id_hash": "d1d18e9b735fac2ed8e74566999faac624ddcc824bb724ef70a3353c15e62cd6",
+    "smtp_and_gmail_message_id_match": true,
+    "mailbox_labels": [
+      "INBOX",
+      "SENT",
+      "UNREAD"
+    ],
+    "additional_recovery_authorized": true,
+    "additional_recovery_executed": true,
+    "last_recovery_new_attempts": 1,
+    "attempt_states": [
+      "unknown",
+      "unknown",
+      "succeeded"
+    ],
+    "previous_unknown_history_preserved": true,
+    "fourth_attempt_authorized": false,
+    "fourth_attempt_blocked_for_baselines": [
+      1,
+      2
+    ],
+    "first_manual_recovery_report": "docs/真实提醒联调-email-人工恢复-1794470424134-2258c6a7-7bb3-4850-ab9d-ab7a7466666c.json"
+  },
+  "automatic_plans_enabled": false,
+  "user_database_used": false,
+  "credentials_in_report": false,
+  "overall_status": "live_passed_fixed_synthetic_channels"
+}

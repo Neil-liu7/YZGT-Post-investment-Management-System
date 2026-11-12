@@ -11,6 +11,18 @@ export function isBusinessDate(value: string): boolean {
 }
 
 export const businessDateSchema = z.string().refine(isBusinessDate, '日期必须是有效的 YYYY-MM-DD');
+export const workCalendarSchema = z.object({
+  name: z.string().trim().min(1, '请填写日历名称').max(300),
+  region: z.string().trim().min(1, '请填写适用地区').max(100).default('CN'),
+  start_on: businessDateSchema, end_on: businessDateSchema,
+  source: z.string().trim().min(1, '请填写日历来源').max(20000),
+  overrides: z.record(businessDateSchema, z.boolean()).default({}),
+}).strict().superRefine((calendar, ctx) => {
+  if (calendar.start_on > calendar.end_on) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['end_on'], message: '覆盖结束日不能早于开始日' });
+  for (const date of Object.keys(calendar.overrides)) {
+    if (date < calendar.start_on || date > calendar.end_on) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['overrides', date], message: '调休日期必须在日历覆盖范围内' });
+  }
+});
 export const versionSchema = z.number().int().min(1);
 export const taskStatusSchema = z.enum(['pending', 'doing', 'done', 'cancelled']);
 export const deadlineStateSchema = z.enum(['calculated', 'waiting_event', 'needs_review', 'manual']);
@@ -103,3 +115,5 @@ export type ObligationInput = z.infer<typeof obligationSchema>;
 
 export const projectSchema = z.object({ name: z.string().trim().min(1).max(300), company: z.string().trim().min(1).max(500), owner_label: z.string().max(200).default(''), notes: z.string().max(20000).default('') }).strict();
 export const eventSchema = z.object({ name: z.string().trim().min(1).max(300), occurred_on: businessDateSchema.nullable(), scope: z.enum(['project', 'document', 'investor']).default('project'), document_id: z.string().nullable().optional(), investor_label: z.string().nullable().optional(), notes: z.string().max(20000).default('') }).strict();
+
+export * from './joint-extraction.ts';

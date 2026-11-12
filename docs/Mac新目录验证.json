@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-11-12T02:39:16.086Z",
+  "os": "darwin",
+  "arch": "arm64",
+  "node": "22.22.2",
+  "directory": "var/交付 演练 1794451092589",
+  "install": "npm ci --offline --no-audit --no-fund",
+  "installed_packages": 425,
+  "doctor": "passed",
+  "schema_version": 4,
+  "build": "passed",
+  "production_start": "passed",
+  "empty_projects": 0,
+  "port": 18766,
+  "rehearsal_directory_cleaned": true
+}

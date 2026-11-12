@@ -29,7 +29,7 @@ export class LegacyImporter {
   }
   const ids=(table:string)=>new Set<string>(imp.created_records.filter((r:any)=>r.table===table).map((r:any)=>r.id));
   const projects=ids('projects'),tasks=ids('tasks'),obligations=ids('obligations'),documents=ids('documents');
-  for(const table of ['events','documents','clauses','obligations','tasks','evidence','extractions','drafts','reminders','notifications']){
+  for(const table of ['events','documents','clauses','obligations','tasks','evidence','extractions','drafts','event_drafts','reminders','notifications']){
    for(const row of this.store.all(table))if(!created.has(`${table}:${row.id}`)&&(projects.has(row.project_id)||tasks.has(row.task_id)||obligations.has(row.obligation_id)||documents.has(row.document_id)))blocked.push({table,id:row.id,reason:'new_dependent_record',message:'该项目存在导入后新增业务，停止自动撤回'});
   }
   return blocked;
