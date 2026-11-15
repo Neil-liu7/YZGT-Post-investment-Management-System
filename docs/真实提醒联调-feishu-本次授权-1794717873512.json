@@ -1,0 +1,40 @@
+{
+  "status": "transport_accepted",
+  "scope": "user_authorized_single_synthetic_feishu_test",
+  "started_at": "2026-11-15T04:44:32.479Z",
+  "finished_at": "2026-11-15T04:44:33.512Z",
+  "channel": "feishu",
+  "mode": "live",
+  "purpose": "test",
+  "notification_id": "815cf7db-d175-4c5c-bdb7-ab9865afc22e",
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "status": "succeeded",
+      "mode": "live",
+      "started_at": "2026-11-15T04:44:33.024Z",
+      "finished_at": "2026-11-15T04:44:33.438Z",
+      "external_id_hash": null
+    }
+  ],
+  "content_items": 0,
+  "content_subject": "投后管理渠道测试",
+  "scheduler_enabled": false,
+  "health_mode": "live",
+  "receipt_status": "receipt_pending",
+  "receipt_note": "transport_accepted仅表示飞书接口接受请求；需在测试群确认消息实际出现。",
+  "states": [
+    {
+      "at": "2026-11-15T04:44:32.498Z",
+      "status": "queued"
+    },
+    {
+      "at": "2026-11-15T04:44:33.010Z",
+      "status": "queued"
+    },
+    {
+      "at": "2026-11-15T04:44:33.512Z",
+      "status": "succeeded"
+    }
+  ]
+}
