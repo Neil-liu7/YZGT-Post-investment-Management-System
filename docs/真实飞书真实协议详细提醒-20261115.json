@@ -38,5 +38,8 @@
   "scheduler_started": false,
   "main_database_used": false,
   "model_request_count": 0,
-  "note": "接口succeeded仅表示飞书接口接受请求；需用户在测试群确认消息实际出现。"
+  "note": "接口succeeded仅表示飞书接口接受请求；需用户在测试群确认消息实际出现。",
+  "receipt_status": "confirmed_by_user",
+  "receipt_confirmed_at": "2026-11-15T21:54:54+08:00",
+  "receipt_note": "用户确认已在飞书测试群看到并阅读本次真实协议详细提醒。"
 }
