@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-11-15T13:50:27.072Z",
+  "scope": "user_authorized_single_real_feishu_protocol_reminder",
+  "channel": "feishu",
+  "mode": "live",
+  "target": "已配置的飞书测试群",
+  "subject": "拙河科技真实协议详细提醒",
+  "body_sha256": "d3b00ca071ee5268a32dfff844f7ea7205606598144bcae966a9447952798a3e",
+  "body_length": 9611,
+  "required_field_checks": {
+    "事项：": true,
+    "动作：": true,
+    "交付物：": true,
+    "触发条件：": true,
+    "原期限：": true,
+    "协议：": true,
+    "责任主体：": true,
+    "截止：": true,
+    "原文：": true
+  },
+  "snapshot_id": "8f167775-0f24-4c60-8ecf-58c34145041d",
+  "notification_id": "daea420f-dfaa-48cb-9150-e68920b2cb44",
+  "notification_status": "succeeded",
+  "attempts": [
+    {
+      "status": "succeeded",
+      "attempt_number": 1,
+      "external_id_present": false,
+      "error_code": null
+    }
+  ],
+  "process_results": [
+    {
+      "status": "succeeded",
+      "error_code": null
+    }
+  ],
+  "scheduler_started": false,
+  "main_database_used": false,
+  "model_request_count": 0,
+  "note": "接口succeeded仅表示飞书接口接受请求；需用户在测试群确认消息实际出现。"
+}
