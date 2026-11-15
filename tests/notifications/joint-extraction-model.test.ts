@@ -175,6 +175,12 @@ describe('joint model response grounding and prompt transport', () => {
     const result=await extractCandidates('协议签署日期为2026年8月7日。',{joint_extraction:true});
     expect(result.event_candidates[0]?.occurred_on).toBe('2026-08-07');
   });
+  it('does not treat a disclosure-table date as an obligation deadline', () => {
+    const text = '最新银行贷款情况（更新至2026年7月28日）';
+    const result = verifyJointResponse({ event_candidates: [], candidates: [{ title: '贷款情况', description: text, obligor: '', action: '', deliverable: '', trigger: '', deadline_rule: { schema_version: 1, kind: 'fixed', confirmation_status: 'confirmed', original_expression: text, date: '2026-07-28', convention }, source_text: text, locator: { paragraph: 1 }, clause_index: 0, unresolved_items: [] }] }, [{ text, locator: { paragraph: 1 }, clause_index: 0 }]);
+    expect(result.candidates[0].deadline_rule).toBeNull();
+    expect(result.candidates[0].unresolved_items.join('')).toContain('披露或事实日期');
+  });
 
   it.each([
     ['公司已于2026年11月6日提供出资凭证。','收到款项','investment'],

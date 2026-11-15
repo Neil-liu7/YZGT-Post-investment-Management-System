@@ -31,6 +31,12 @@ const eventWords: Record<EventCandidate['event_type'], RegExp> = {
 const phasesIn = (text: string) => [...text.matchAll(/(?:第?[一二三四五六七八九十百\d]+|首|末|[A-Z])(?:期|次|笔|批|轮|阶段)/g)].map(match => match[0]);
 const factSegments = (text: string) => text.split(/[。；;，,\n]|(?:并且|并|且|随后|继而)(?=(?:已|实际)?于|在)/);
 const stripClausePrefix = (text: string) => text.replace(/^(?:第[零一二三四五六七八九十百\d]+条|\d+(?:\.\d+)*[、.．]?)\s*/, '').trim();
+function deadlineDateSupported(text: string, date: string) {
+  const match = [...text.matchAll(/(\d{4})\s*(?:年|[-/.])\s*(\d{1,2})\s*(?:月|[-/.])\s*(\d{1,2})日?/g)].find(item => `${item[1]}-${item[2].padStart(2, '0')}-${item[3].padStart(2, '0')}` === date);
+  if (!match || match.index === undefined) return false;
+  const window = text.slice(Math.max(0, match.index - 45), Math.min(text.length, match.index + match[0].length + 45));
+  return /应|须|必须|不迟于|不晚于|最迟|截止|期限|之前|前|以内|内/.test(window) && /完成|提交|报送|办理|缴纳|实缴|上市|登记|支付|签订|提供|交付|迁移|核查|回购/.test(text);
+}
 function actualDateSupported(event: EventCandidate, context = event.source_text) {
   if (!event.occurred_on) return true;
   if (!datesIn(event.source_text).has(event.occurred_on)) return false;
@@ -106,6 +112,9 @@ export function verifyJointResponse(raw: unknown, part: Source[], prefix = '', k
       }
     });
     if (unsupportedDate) { rule = null; unresolved.add('规则中的日期无法从该原文核对，请人工补齐，不采用模型猜测日期'); }
+    if (rule?.kind === 'fixed' && !deadlineDateSupported(candidate.source_text, rule.date)) {
+      rule = null; unresolved.add('该日期可能是披露或事实日期，不作为履约截止日，请人工核对');
+    }
     if (rule?.kind === 'recurring' && rule.first_period_start === null) unresolved.add('首个自然周期尚未明确，保留已提取频率及偏移，确认前需补齐');
     if (rule) rule.confirmation_status = 'needs_review';
     return { ...candidate, deadline_rule: rule, locator: source.locator, clause_number: source.clause_number, unresolved_items: [...unresolved] };
@@ -137,8 +146,10 @@ export function mockJointCandidates(clauses: ParsedClause[], legacy: any[], prom
   const actionVerbs = ['完成', '提交', '提供', '报送', '交付', '办理', '支付', '缴纳', '通知', '签署', '签订', '申请', '取得', '出具', '交纳', '协助', '配合', '不得'];
   const enrich = (candidate: any) => {
     const original = stripClausePrefix(String(candidate.description ?? ''));
-    const subject = original.match(/^(.{1,30}?)(?:应当|应|须|必须|不得|需要|负责)/)?.[1]?.trim() ?? '';
-    const subjectKnown = /(?:公司|企业|甲方|乙方|丙方|投资方|出资方|承诺方|受让方|转让方|管理人|基金)/.test(subject);
+    const subjectPrefix = original.match(/^(.{1,80}?)(?:应当|应|须|必须|不得|需要|负责)/)?.[1]?.trim() ?? '';
+    const roleMatches = [...subjectPrefix.matchAll(/甲方、乙方(?:、[^，。]{0,8})?(?:及|和)创始股东|甲方、乙方|甲方|乙方|丙方|各方|目标公司|集团公司|创始股东|本轮投资方|投资方[甲乙丙丁A-Z]?|出资方[甲乙丙丁A-Z]?|承诺方|受让方|转让方|基金管理人|管理人|董事会|股东会|清算组|违约人|公司|企业/g)];
+    const subject = roleMatches.at(-1)?.[0] ?? '';
+    const subjectKnown = Boolean(subject);
     const marker = original.search(/(?:应当|应|须|必须|不得|需要|负责)/);
     const body = marker >= 0 ? original.slice(marker + (original.slice(marker).match(/^(?:应当|应|须|必须|不得|需要|负责)/)?.[0].length ?? 0)).trim() : original;
     const verbPattern = new RegExp(`(?:${actionVerbs.join('|')})`, 'g');
@@ -152,10 +163,10 @@ export function mockJointCandidates(clauses: ParsedClause[], legacy: any[], prom
     const afterVerb = verbMatch ? body.slice((verbMatch.index ?? 0) + verb.length).replace(/[。；;，,].*$/, '').trim() : '';
     const deliverable = afterVerb.replace(/^(?:相关|有关|本协议约定的)/, '').trim();
     const eventMatch = beforeVerb.match(/(?:本)?协议(?:签署|签订)|签署|签订|收到(?:款项|付款)|收款|出资|到账|交割/);
+    const early = beforeVerb.match(/提前\s*[\d一二两三四五六七八九十]+\s*(?:个?工作日|个?月|日|天)/)?.[0] ?? '';
     const trigger = /每季度结束|每月结束|每年结束/.test(beforeVerb) ? (beforeVerb.match(/每(?:季度|月|年)结束/)?.[0] ?? '')
       : eventMatch ? (/交割/.test(eventMatch[0]) ? '交割' : /签署|签订/.test(eventMatch[0]) ? '协议签署' : /收到|收款|出资|到账/.test(eventMatch[0]) ? '收到款项' : eventMatch[0])
-      : datesIn(original).size ? `固定日期 ${[...datesIn(original)][0]}`
-      : beforeVerb.replace(/后|起|之日起|前/g, '').trim();
+      : early || ([...datesIn(original)].find(date => deadlineDateSupported(original, date)) ? `固定日期 ${[...datesIn(original)].find(date => deadlineDateSupported(original, date))}` : beforeVerb.replace(/后|起|之日起|前/g, '').trim());
     const unresolved = [...(candidate.unresolved_items ?? [])];
     if (!subjectKnown) unresolved.push('义务主体未明确，请人工核对');
     if (!verb) unresolved.push('动作未能稳定识别，请人工核对');
@@ -173,10 +184,11 @@ export function mockJointCandidates(clauses: ParsedClause[], legacy: any[], prom
     const relative = original.match(/(后|前|之日起|起)\s*([\d一二两三四五六七八九十]+)\s*(个?工作日|个?月|年|自然日|日|天)/);
     const digits: Record<string, number> = { 一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9 };
     const number = (text: string): number => /^\d+$/.test(text) ? Number(text) : text.includes('十') ? ((digits[text.split('十')[0]] || 1) * 10 + (digits[text.split('十')[1]] || 0)) : digits[text] || 0;
+    const supportedDate = [...datesIn(original)].find(date => deadlineDateSupported(original, date));
     let rule: any = relative && !cycle && !continuous ? { schema_version:1,kind:'relative',confirmation_status:'needs_review',original_expression:original,
       anchor:{type:'event',event_id:/签署|签订/.test(original)?'unresolved:signature':/交割/.test(original)?'unresolved:closing':/款|出资/.test(original)?'unresolved:payment':'unresolved:event'},
       offsets:[{amount:number(relative[2]) * (relative[1] === '前' ? -1 : 1),unit:parseUnit(relative[3]),include_start_day:false}],convention:{...convention} }
-      : !cycle && !continuous && datesIn(original).size ? { schema_version:1,kind:'fixed',confirmation_status:'needs_review',original_expression:original,date:[...datesIn(original)][0],convention:{...convention} } : null;
+      : !cycle && !continuous && supportedDate ? { schema_version:1,kind:'fixed',confirmation_status:'needs_review',original_expression:original,date:supportedDate,convention:{...convention} } : null;
     const unresolved = new Set<string>([...(candidate.unresolved_items ?? []), '模拟提取结果，须核对义务主体、动作及计数口径']);
     if (rule?.kind === 'relative') {
       const kind = rule.anchor.event_id.includes('signature') ? 'signing' : rule.anchor.event_id.includes('closing') ? 'closing' : rule.anchor.event_id.includes('payment') ? 'investment' : 'other';

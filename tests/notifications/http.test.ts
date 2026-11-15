@@ -36,7 +36,7 @@ describe('notification HTTP contracts', () => {
   it('includes protocol name and clause locator in a detailed reminder preview', async () => {
     const s = setup();
     const document = s.store.create('documents', { project_id: s.project.id, original_name: '增资协议-拙河科技.pdf', state: 'parsed', file_version: 1, text: '2.2.7 目标公司应完成登记。' });
-    const obligation = s.store.create('obligations', { project_id: s.project.id, document_id: document.id, document_version_id: document.id, title: '完成登记', action: '完成', deliverable: '登记', trigger: '固定日期 2026-11-18', owner_label: '目标公司', clause_number: '2.2.7', rule: { kind: 'fixed', date: '2026-11-18', confirmation_status: 'confirmed' } });
+    const obligation = s.store.create('obligations', { project_id: s.project.id, document_id: document.id, document_version_id: document.id, title: '完成登记', action: '完成', deliverable: '登记', trigger: '固定日期 2026-11-18', owner_label: '目标公司', clause_number: '2.2.7', rule: { kind: 'fixed', date: '2026-11-18', original_expression: '2026年11月18日前完成登记', confirmation_status: 'confirmed' } });
     s.store.create('tasks', { project_id: s.project.id, obligation_id: obligation.id, document_id: document.id, clause_number: '2.2.7', title: '完成登记', owner_label: '目标公司', status: 'pending', activated_on: '2026-11-01', effective_due_on: '2026-11-18', deadline_state: 'calculated', schedule_revision: 1 });
     const preview = await request(s.app).post('/api/v1/reminders/preview').send({ channel: 'feishu' });
     expect(preview.status).toBe(200);
@@ -45,6 +45,7 @@ describe('notification HTTP contracts', () => {
     expect(preview.body.data.content.body).toContain('负责人：目标公司');
     expect(preview.body.data.content.body).toContain('动作：完成');
     expect(preview.body.data.content.body).toContain('交付物：登记');
+    expect(preview.body.data.content.body).toContain('原期限：2026年11月18日前完成登记');
   });
   it('rejects stale previews with an envelope and allows explicit historical edited snapshot', async () => {
     const s = setup(); const preview = (await request(s.app).post('/api/v1/reminders/preview').send({})).body.data;

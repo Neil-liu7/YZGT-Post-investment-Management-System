@@ -9,13 +9,28 @@ export class IntegrationError extends Error {
 }
 export function clause(text: string, locator: Locator): ParsedClause {
   const number = text.match(/^(第[零一二三四五六七八九十百\d]+条|\d+(?:\.\d+)*[、.．]?)/)?.[1];
-  return { text, locator, ...(number ? { clause_number: number } : {}) };
+  const financialNumber = /^\d+\.\d+\s*(?:万元|元|%|％)/.test(text);
+  return { text, locator, ...(number && !financialNumber ? { clause_number: number } : {}) };
 }
 export function paragraphs(text: string): ParsedClause[] {
   return text.replace(/\r\n?/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean).map((t, i) => clause(t, { paragraph: i + 1 }));
 }
 function ocrParagraphs(page: number, text: string): ParsedClause[] {
   return text.replace(/\r\n?/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean).map((t, i) => clause(t, { page, paragraph: i + 1 }));
+}
+const structuredLineStart = /^(?:第[零一二三四五六七八九十百\d]+条|\d+(?:\.\d+)+\s|[（(]\s*[一二三四五六七八九十\d]+\s*[）)]|[一二三四五六七八九十]+[、.．])/;
+const terminalLine = /[。！？；;：:]$/;
+/** Join visual PDF lines back into logical paragraphs while preserving page/paragraph locators. */
+export function mergePdfLines(lines: string[]): string[] {
+  const result: string[] = [];
+  for (const raw of lines.map(line => line.trim()).filter(Boolean)) {
+    // Bare page numbers are headers/footers in the supplied agreements, not clauses.
+    if (/^\d{1,3}$/.test(raw) && !result.length) continue;
+    const previous = result.at(-1);
+    if (!previous || structuredLineStart.test(raw) || terminalLine.test(previous)) result.push(raw);
+    else result[result.length - 1] = previous + raw;
+  }
+  return result;
 }
 export async function parseDocument(buffer: Buffer, filename: string, options: ParseDocumentOptions = {}): Promise<ParsedDocument> {
   const extension = extname(filename).toLowerCase();
@@ -63,7 +78,7 @@ export async function parseDocument(buffer: Buffer, filename: string, options: P
         if (item.hasEOL && line.trim()) { lines.push(line.trim()); line = ''; }
       }
       if (line.trim()) lines.push(line.trim());
-      clauses.push(...lines.map((t, i) => clause(t, { page, paragraph: i + 1 })));
+      clauses.push(...mergePdfLines(lines).map((t, i) => clause(t, { page, paragraph: i + 1 })));
     }
     if (!clauses.length) {
       const provider = resolveOcrProvider({ mode: options.ocrMode, provider: options.ocrProvider, env: options.env });
