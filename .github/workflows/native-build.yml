@@ -7,7 +7,9 @@ on:
 
 jobs:
   mac:
-    runs-on: macos-14
+    # macos-14 ARM runners are not available in every GitHub-hosted pool;
+    # keep this CI job portable by building the x64 target on macos-13.
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,10 +17,12 @@ jobs:
           node-version: 22.22.2
           cache: npm
       - run: npm ci
-      - run: npm run native:mac
+      - run: npm run build
+      - run: npm run native:runtime -- --platform=darwin --arch=x64
+      - run: npx electron-builder --config electron-builder.yml --mac dmg --x64 --publish never
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64-installer
+          name: macos-x64-installer
           path: dist-native/*.dmg
 
   windows:
