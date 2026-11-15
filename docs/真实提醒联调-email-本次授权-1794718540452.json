@@ -1,0 +1,73 @@
+{
+  "status": "transport_accepted",
+  "scope": "user_authorized_single_synthetic_email_test",
+  "started_at": "2026-11-15T04:55:35.376Z",
+  "finished_at": "2026-11-15T04:55:40.450Z",
+  "channel": "email",
+  "mode": "live",
+  "purpose": "test",
+  "notification_id": "20cc77ee-508c-4373-901c-1c1558efd80a",
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "status": "succeeded",
+      "mode": "live",
+      "started_at": "2026-11-15T04:55:36.277Z",
+      "finished_at": "2026-11-15T04:55:40.255Z",
+      "external_id_hash": "5181a5cc2cd7c171c09ff2a15b2cac6db0899d32272486cfca78d5a27755326f"
+    }
+  ],
+  "content_items": 0,
+  "subject": "投后管理渠道测试",
+  "scheduler_enabled": true,
+  "mail_enabled": false,
+  "feishu_enabled": true,
+  "receipt_status": "receipt_pending",
+  "receipt_note": "transport_accepted仅表示SMTP服务器接受请求；需在Gmail收件箱确认实际到达，不能据此宣称已读。",
+  "states": [
+    {
+      "at": "2026-11-15T04:55:35.400Z",
+      "status": "queued"
+    },
+    {
+      "at": "2026-11-15T04:55:35.907Z",
+      "status": "queued"
+    },
+    {
+      "at": "2026-11-15T04:55:36.409Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:36.918Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:37.425Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:37.929Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:38.434Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:38.937Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:39.443Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:39.944Z",
+      "status": "sending"
+    },
+    {
+      "at": "2026-11-15T04:55:40.450Z",
+      "status": "succeeded"
+    }
+  ]
+}
