@@ -21,14 +21,19 @@ jobs:
       - run: npm run build
       - run: npm run native:runtime -- --platform=win32 --arch=x64
       - run: npm run native:win
-      - name: Smoke test packaged Windows app
+      - name: Install and smoke test Windows installer
         shell: pwsh
         run: |
           $userData = Join-Path $env:RUNNER_TEMP 'yzgt-native-user-data'
           New-Item -ItemType Directory -Force -Path $userData | Out-Null
           @('LLM_MODE=mock', 'OUTBOUND_MODE=mock', 'SCHEDULER_ENABLED=false') | Set-Content (Join-Path $userData '.env')
-          $exe = Get-ChildItem 'dist-native/win-unpacked/*.exe' | Where-Object { $_.Name -notmatch 'Update|uninstall' } | Select-Object -First 1
-          if (-not $exe) { throw '找不到 Windows 解包程序。' }
+          $installer = Get-ChildItem 'dist-native/*Setup*.exe' | Select-Object -First 1
+          if (-not $installer) { throw '找不到 Windows NSIS 安装程序。' }
+          $installDir = Join-Path $env:RUNNER_TEMP 'yzgt-native-installed'
+          $installResult = Start-Process -FilePath $installer.FullName -ArgumentList @('/S', "/D=$installDir") -Wait -PassThru
+          if ($installResult.ExitCode -ne 0) { throw "NSIS 安装失败，退出码 $($installResult.ExitCode)。" }
+          $exe = Get-ChildItem "$installDir/*.exe" | Where-Object { $_.Name -notmatch 'Update|uninstall' } | Select-Object -First 1
+          if (-not $exe) { throw "安装后找不到应用程序：$installDir" }
           $stdout = Join-Path $env:RUNNER_TEMP 'yzgt-native-stdout.log'
           $stderr = Join-Path $env:RUNNER_TEMP 'yzgt-native-stderr.log'
           $process = Start-Process -FilePath $exe.FullName -ArgumentList "--user-data-dir=$userData" -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
