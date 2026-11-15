@@ -118,6 +118,7 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
       <Link className={s.textButton} to={`/documents/${run.document_id}`}>返回原文重新提取</Link>
     </div>}
     {run.prompt && <Card title="本次补充提取要求"><p className={s.prewrap}>{run.prompt}</p></Card>}
+    <Card title="本次协议来源"><dl className={s.details}><dt>协议名称</dt><dd>{run.protocol_name ?? run.document_name ?? run.original_name ?? run.document?.original_name ?? '来源文件'}</dd><dt>原始文件</dt><dd>{run.original_name ?? run.document?.original_name ?? '—'}</dd><dt>提取批次</dt><dd>{run.id?.slice(0, 12) ?? '—'}</dd><dt>审核要求</dt><dd>事件、义务、期限和原文定位均需逐条核对</dd></dl></Card>
     <ErrorBox error={loadError} retry={refresh} /><ErrorBox error={error} />
     {success && <div role="status" className={s.notice}>{success}<Link to={`/projects/${run.project_id}`}>查看项目事项 →</Link><Link to={`/projects/${run.project_id}/events`}>查看正式事件 →</Link></div>}
     {!stable && ['queued', 'running'].includes(run.state) && <Loading />}
