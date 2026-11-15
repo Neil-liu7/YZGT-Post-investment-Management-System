@@ -14,10 +14,15 @@ describe('native desktop packaging contract', () => {
   it('keeps the native shell away from the better-sqlite3 Electron ABI', () => {
     const main = readFileSync('desktop/main.mjs', 'utf8');
     expect(main).toContain('runtimeBinary');
-    expect(main).toContain("scripts', 'start.mjs");
+    expect(main).toContain("scripts', 'supervise.ts");
+    expect(main).toContain('SUPERVISOR_LOG_DIR');
+    expect(main).toContain("join(userData, 'supervisor')");
     expect(main).not.toContain("require('better-sqlite3')");
     expect(existsSync('desktop/preload.cjs')).toBe(true);
     expect(existsSync('desktop/onboarding.html')).toBe(true);
+    const onboarding = readFileSync('desktop/onboarding.html', 'utf8');
+    expect(onboarding).toContain('BACKUP_SCHEDULE_ENABLED');
+    expect(onboarding).toContain('SUPERVISOR_ALERT_WEBHOOK_URL');
   });
 
   it('provides reproducible runtime fetch and Windows CI entry points', () => {

@@ -8,7 +8,6 @@
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { useProjectRuntime, projectRoot } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -52,9 +51,8 @@ try {
     if (runNpm(['run', 'build']) !== 0) throw new Error('构建未完成，应用尚未启动。');
   }
   if (runNpm(['run', 'db:migrate']) !== 0) throw new Error('数据库初始化未完成，应用尚未启动。');
-  const launcher = fileURLToPath(new URL('./launch.mjs', import.meta.url));
-  const child = spawnSync(process.execPath, [launcher], { cwd: projectRoot, stdio: 'inherit', windowsHide: true });
-  process.exitCode = child.status ?? 1;
+  const child = runNpm(['run', 'supervise'], { env: { ...process.env, SUPERVISOR_OPEN_BROWSER: 'true' } });
+  process.exitCode = child ?? 1;
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }

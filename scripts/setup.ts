@@ -58,6 +58,10 @@ async function interactiveValues(values: LocalEnv): Promise<LocalEnv> {
     await ask('OUTBOUND_MODE', '通知模式（mock/live）', result.OUTBOUND_MODE || 'mock');
     if (result.OUTBOUND_MODE === 'live') { await ask('SMTP_HOST', 'SMTP服务器'); await ask('SMTP_PORT', 'SMTP端口', result.SMTP_PORT || '465'); await ask('SMTP_SECURE', 'SMTP使用TLS（true/false）', result.SMTP_SECURE || 'true'); await ask('SMTP_USER', 'SMTP账号'); const pass = await hidden(rl, `SMTP密码${result.SMTP_PASS ? '（已配置，回车保留）' : ''}：`); if (pass.trim()) result.SMTP_PASS = pass.trim(); await ask('SMTP_FROM', 'SMTP发件地址'); await ask('MAIL_TO', '邮件收件地址'); await ask('FEISHU_WEBHOOK_URL', '飞书机器人Webhook'); await ask('FEISHU_KEYWORD', '飞书关键词', result.FEISHU_KEYWORD || '投后提醒'); }
     await ask('SCHEDULER_ENABLED', '自动提醒总开关（true/false）', result.SCHEDULER_ENABLED || 'false');
+    await ask('BACKUP_SCHEDULE_ENABLED', '定时备份总开关（true/false）', result.BACKUP_SCHEDULE_ENABLED || 'false');
+    if (result.BACKUP_SCHEDULE_ENABLED === 'true') { await ask('BACKUP_INTERVAL_HOURS', '备份间隔（小时）', result.BACKUP_INTERVAL_HOURS || '24'); await ask('BACKUP_RETENTION', '备份保留份数', result.BACKUP_RETENTION || '7'); }
+    await ask('SUPERVISOR_LOG_MAX_BYTES', '日志轮换大小（字节）', result.SUPERVISOR_LOG_MAX_BYTES || '10485760');
+    await ask('SUPERVISOR_LOG_RETENTION', '日志保留份数', result.SUPERVISOR_LOG_RETENTION || '5');
   } finally { rl.close(); }
   return result;
 }

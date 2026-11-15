@@ -20,6 +20,8 @@ npm start
 
 浏览器打开 http://127.0.0.1:8765 。日常只需 `npm start`，Ctrl+C 停止。Windows 可双击 `启动系统.cmd`；Mac 首次 `chmod +x 启动系统.command` 后双击，或终端执行 `sh 启动系统.command`。中文与带空格目录使用引号。端口冲突时不终止其他程序，在 `.env` 中设置 `PORT=8766`，访问对应端口。
 
+`npm start` 现在通过运行守护启动服务：子进程异常退出或健康检查连续失败时自动重启，并在重启次数达到窗口上限后停止并写入告警。日志写入 `SUPERVISOR_LOG_DIR`（默认 `var/supervisor`），达到 `SUPERVISOR_LOG_MAX_BYTES` 后轮换，保留 `SUPERVISOR_LOG_RETENTION` 份。启用 `BACKUP_SCHEDULE_ENABLED=true` 后，守护会按 `BACKUP_INTERVAL_HOURS` 定时创建一致性备份，并按 `BACKUP_RETENTION` 清理旧备份；运行告警默认写入 `SUPERVISOR_ALERT_FILE`，如需外部接收可配置 HTTPS `SUPERVISOR_ALERT_WEBHOOK_URL`。可用 `npm run ops:status` 查看配置，`npm run ops:backup` 立即备份，`npm run ops:rotate` 执行轮换。电脑关机或休眠期间无法运行守护，恢复后会执行当前状态的恢复扫描。
+
 ## 本地安装与配置
 
 给同事分发本地版本时，先在开发机完成构建，再生成便携式安装包：
@@ -46,6 +48,14 @@ npm run package:local -- --out "var/亦庄投后管理-本地安装包"
 复制 `.env.example` 为 `.env` 可调整本地配置。没有任何凭据也可以完整操作模拟流程：新建项目→登记已知事件→上传 PDF/DOCX/TXT/MD→查看原文→提取候选→逐条核对规则并导入→跟踪事项→完成/重开→预览提醒→确认模拟发送→查看日志。模拟结果明确显示“模拟完成”，不代表真实消息送达。手工义务可独立创建，工作日日历先导入和确认，未知事件保持空值。
 
 期限编辑均先预览后提交，人工截止日保留到明确解除；周期事项独立生成、独立完成。筛选后的上移/下移只更改排序。已完成和取消的历史记录保留。外部消息结果未知时先核查，再标记成功或确认重发。
+
+## 运行保障
+
+需要让自动提醒在后台持续运行时，使用 `npm run supervise` 启动服务守护。守护会执行本机健康检查，连续失败时停止异常进程并按退避策略重启；达到重启上限后写入失败告警。桌面入口和原生 Electron 应用都使用同一守护入口。
+
+在 `.env` 中设置 `BACKUP_SCHEDULE_ENABLED=true` 可开启定时封口备份，`BACKUP_INTERVAL_HOURS` 设置间隔（默认 24 小时），`BACKUP_RETENTION` 设置保留份数（默认 7）。日志写入 `SUPERVISOR_LOG_DIR`，超过 `SUPERVISOR_LOG_MAX_BYTES` 后按 `SUPERVISOR_LOG_RETENTION` 轮换。运行失败告警默认写入 `SUPERVISOR_ALERT_FILE`；只有显式配置 `SUPERVISOR_ALERT_WEBHOOK_URL` 才会发送外部 Webhook。
+
+可以使用 `npm run ops:status` 查看配置，`npm run ops:rotate` 手动轮换日志和清理旧备份，`npm run ops:backup` 立即执行一次封口备份。自动测试使用临时目录和 mock 告警，不连接真实外部渠道。
 
 复杂期限可在「创建义务」「核对候选义务」或「变更规则」中直接使用表单：选择单个事件、多个日期孰早/孰晚，增加自然日/工作日/月/年的偏移步骤，或设置持续义务的事件与相对日期边界。点击「预览期限计算」核对结果和计算过程；周期规则展示首3期，各期单独计算。高级JSON仅作可选工具。
 

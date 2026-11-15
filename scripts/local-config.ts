@@ -11,6 +11,9 @@ export const supportedKeys = [
   'LLM_MAX_TOKENS', 'LLM_REASONING_EFFORT', 'LLM_TEMPERATURE', 'GLM_API_KEY', 'GLM_MODEL', 'GLM_BASE_URL',
   'ALLOW_EXTERNAL_MODEL', 'OUTBOUND_MODE', 'SCHEDULER_ENABLED', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE',
   'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'MAIL_TO', 'FEISHU_WEBHOOK_URL', 'FEISHU_KEYWORD',
+  'BACKUP_SCHEDULE_ENABLED', 'BACKUP_INTERVAL_HOURS', 'BACKUP_RETENTION', 'SUPERVISOR_LOG_DIR',
+  'SUPERVISOR_LOG_MAX_BYTES', 'SUPERVISOR_LOG_RETENTION', 'SUPERVISOR_ALERT_FILE',
+  'SUPERVISOR_ALERT_WEBHOOK_URL', 'SUPERVISOR_ALERT_COOLDOWN_MINUTES',
 ] as const;
 export type LocalEnv = Record<string, string>;
 
@@ -104,6 +107,18 @@ export function checkConfiguration(values: LocalEnv, options: { checkNode?: bool
   const scheduler = bool(values.SCHEDULER_ENABLED);
   add(scheduler !== undefined || values.SCHEDULER_ENABLED === undefined, 'SCHEDULER_VALUE_VALID', '自动提醒开关配置有效。', { enabled: scheduler ?? false });
   if (scheduler && outbound !== 'live') add(false, 'SCHEDULER_REQUIRES_LIVE', '开启自动提醒前必须使用真实通知模式。');
+  const backupEnabled = bool(values.BACKUP_SCHEDULE_ENABLED);
+  add(backupEnabled !== undefined || values.BACKUP_SCHEDULE_ENABLED === undefined, 'BACKUP_SCHEDULE_VALUE_VALID', '定时备份开关配置有效。', { enabled: backupEnabled ?? false });
+  const backupInterval = Number(values.BACKUP_INTERVAL_HOURS || '24');
+  add(Number.isFinite(backupInterval) && backupInterval >= 0.01, 'BACKUP_INTERVAL_VALID', '备份间隔有效。', { hours: backupInterval });
+  const backupRetention = Number(values.BACKUP_RETENTION || '7');
+  add(Number.isSafeInteger(backupRetention) && backupRetention >= 1, 'BACKUP_RETENTION_VALID', '备份保留数量有效。', { count: backupRetention });
+  const logMaxBytes = Number(values.SUPERVISOR_LOG_MAX_BYTES || '10485760');
+  add(Number.isSafeInteger(logMaxBytes) && logMaxBytes >= 1024, 'SUPERVISOR_LOG_SIZE_VALID', '日志轮换大小有效。', { bytes: logMaxBytes });
+  const logRetention = Number(values.SUPERVISOR_LOG_RETENTION || '5');
+  add(Number.isSafeInteger(logRetention) && logRetention >= 1, 'SUPERVISOR_LOG_RETENTION_VALID', '日志保留数量有效。', { count: logRetention });
+  const alertWebhook = values.SUPERVISOR_ALERT_WEBHOOK_URL?.trim();
+  if (alertWebhook) add(/^https:\/\//.test(alertWebhook), 'SUPERVISOR_ALERT_URL_VALID', '运行告警Webhook地址有效。');
   if (outbound === 'live' && !liveChannelReady.some(Boolean)) add(false, 'NO_LIVE_CHANNEL', '至少需要配置一个真实通知渠道。');
   const database = resolve(values.DATABASE_FILE || 'var/app.sqlite');
   const storage = resolve(values.STORAGE_DIR || 'storage');

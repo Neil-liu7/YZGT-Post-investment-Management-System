@@ -70,4 +70,10 @@ describe('local configuration self-check', () => {
     expect(result.checks.map(check => check.code)).toEqual(expect.arrayContaining(['LLM_MODE_VALID', 'OUTBOUND_MODE_VALID', 'SCHEDULER_VALUE_VALID']));
     expect(result.checks.every(check => !JSON.stringify(check).includes('synthetic'))).toBe(true);
   });
+
+  it('requires an explicit HTTPS URL for external runtime alerts', () => {
+    const result = inspectConfiguration({ ...base, SUPERVISOR_ALERT_WEBHOOK_URL: 'http://alerts.example.test/hook' }, { checkPaths: false });
+    expect(result.status).toBe('invalid');
+    expect(result.checks.map(check => check.code)).toContain('SUPERVISOR_ALERT_URL_VALID');
+  });
 });

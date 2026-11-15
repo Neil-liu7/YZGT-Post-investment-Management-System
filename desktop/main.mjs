@@ -34,8 +34,9 @@ function freePort() {
 function sidecarEnv(userData, port) {
   const storage = join(userData, 'storage');
   const backups = join(userData, 'backups');
-  mkdirSync(storage, { recursive: true }); mkdirSync(backups, { recursive: true });
-  return { ...process.env, DOTENV_CONFIG_PATH: join(userData, '.env'), DATABASE_FILE: join(userData, 'var', 'app.sqlite'), STORAGE_DIR: storage, BACKUP_DIR: backups, PORT: String(port), HOST: '127.0.0.1', APP_MODE: 'desktop' };
+  const supervisor = join(userData, 'supervisor');
+  mkdirSync(storage, { recursive: true }); mkdirSync(backups, { recursive: true }); mkdirSync(supervisor, { recursive: true });
+  return { ...process.env, DOTENV_CONFIG_PATH: join(userData, '.env'), DATABASE_FILE: join(userData, 'var', 'app.sqlite'), STORAGE_DIR: storage, BACKUP_DIR: backups, SUPERVISOR_LOG_DIR: supervisor, SUPERVISOR_ALERT_FILE: join(supervisor, 'alerts.jsonl'), PORT: String(port), HOST: '127.0.0.1', APP_MODE: 'desktop' };
 }
 
 function runSetup(values, userData) {
@@ -64,7 +65,9 @@ async function startServer(userData) {
   const node = runtimeBinary();
   if (!node) throw new Error('未找到内置 Node 运行时。');
   serverPort = await freePort();
-  server = spawn(node, [join(appRoot, 'scripts', 'start.mjs')], { cwd: appRoot, env: sidecarEnv(userData, serverPort), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  const tsx = join(appRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  const supervisor = join(appRoot, 'scripts', 'supervise.ts');
+  server = spawn(node, [tsx, supervisor], { cwd: appRoot, env: sidecarEnv(userData, serverPort), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   server.stdout.on('data', data => process.stdout.write(data)); server.stderr.on('data', data => process.stderr.write(data));
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) { try { const response = await fetch(`http://127.0.0.1:${serverPort}/health`); if (response.ok) return; } catch { /* starting */ } await new Promise(resolveWait => setTimeout(resolveWait, 250)); }

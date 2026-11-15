@@ -19,7 +19,7 @@ const allow = [
   'apps', 'packages', 'scripts', 'database', 'dist',
 ];
 const ignored = /(^|[\\/])(node_modules|var|storage|backups|test-results|playwright-report|coverage)([\\/]|$)|(^|[\\/])\.env(?:$|\.)|\.(sqlite|sqlite3|db|db-wal|db-shm|log)$/;
-const required = ['package.json', 'package-lock.json', '.node-version', '.env.example', 'scripts/start.mjs', 'scripts/runtime.mjs', 'dist/server.mjs', 'apps/web/dist/index.html'];
+const required = ['package.json', 'package-lock.json', '.node-version', '.env.example', 'scripts/start.mjs', 'scripts/runtime.mjs', 'scripts/supervise.ts', 'scripts/supervisor-core.mjs', 'scripts/ops-maintenance.ts', 'dist/server.mjs', 'apps/web/dist/index.html'];
 
 function ensureSource() {
   for (const path of required) if (!existsSync(join(root, path))) throw new Error(`缺少发行包所需文件：${path}；请先运行 npm run build。`);
