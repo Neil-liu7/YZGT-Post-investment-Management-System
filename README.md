@@ -37,7 +37,7 @@ npm run package:local -- --out "var/亦庄投后管理-本地安装包"
 
 项目同时提供两种形态：便携式桌面入口仍要求本机安装 Node.js 22.22.2；原生 `.app`/`.exe` 安装器把 Node 22.22.2 sidecar 一起封装，安装后无需另装 Node.js。
 
-原生安装器构建命令：`npm run native:mac` 会在 macOS arm64 生成未签名 `.app/.dmg`，并把 Node 22.22.2 sidecar 一起封装；`npm run native:win` 由 Windows runner 生成 NSIS `.exe`。Windows runner 已完成真实构建与启动冒烟，产物见 [Windows Actions run 43696402043](https://github.com/Neil-liu7/YZGT-Post-investment-Management-System/actions/runs/43696402043)，下载包名为 `亦庄国投投后管理系统-Setup-1.0.0-x64.exe`。原生应用首次启动会显示应用内配置向导，数据和 `.env` 保存在当前用户的应用数据目录。
+原生安装器构建命令：`npm run native:mac` 会在 macOS arm64 生成未签名 `.app/.dmg`，并把 Node 22.22.2 sidecar 一起封装；`npm run native:win` 由 Windows runner 生成 NSIS `.exe`。Windows runner 已完成真实构建、静默安装和安装后启动冒烟，产物见 [Windows Actions run 43697201602](https://github.com/Neil-liu7/YZGT-Post-investment-Management-System/actions/runs/43697201602)，下载包名为 `亦庄国投投后管理系统-Setup-1.0.0-x64.exe`。原生应用首次启动会显示应用内配置向导，数据和 `.env` 保存在当前用户的应用数据目录。
 
 功能演示视频可用 `npm run video:demo` 重新生成，默认输出到 `var/功能演示-时间戳/`，内容使用样例协议、模拟模型和模拟通知，不连接真实服务。
 
