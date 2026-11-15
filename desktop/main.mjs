@@ -70,7 +70,7 @@ async function startServer(userData) {
   server = spawn(node, [tsx, supervisor], { cwd: appRoot, env: sidecarEnv(userData, serverPort), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   server.stdout.on('data', data => process.stdout.write(data)); server.stderr.on('data', data => process.stderr.write(data));
   const deadline = Date.now() + 20000;
-  while (Date.now() < deadline) { try { const response = await fetch(`http://127.0.0.1:${serverPort}/health`); if (response.ok) return; } catch { /* starting */ } await new Promise(resolveWait => setTimeout(resolveWait, 250)); }
+  while (Date.now() < deadline) { try { const response = await fetch(`http://127.0.0.1:${serverPort}/health`); if (response.ok) { console.log(`[desktop] service http://127.0.0.1:${serverPort}`); return; } } catch { /* starting */ } await new Promise(resolveWait => setTimeout(resolveWait, 250)); }
   throw new Error('本地服务启动超时，请查看应用日志。');
 }
 
