@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -32,6 +32,25 @@ describe('notification HTTP contracts', () => {
     expect(history.body.data.items[0].status).toBe('mock_completed');
     expect(history.body.data.items[0].mode).toBe('mock');
     expect(s.store.all('reminders')).toHaveLength(0);
+  });
+  it('forces an HTTP test app to mock mode even when the local environment is live', async () => {
+    vi.stubEnv('OUTBOUND_MODE', 'live');
+    vi.stubEnv('LLM_MODE', 'live');
+    vi.stubEnv('SCHEDULER_ENABLED', 'true');
+    try {
+      const s = setup();
+      expect((await request(s.app).get('/health')).body.data).toMatchObject({ outbound_mode: 'mock', llm_mode: 'mock' });
+      expect((await request(s.app).get('/api/v1/settings')).body.data).toMatchObject({ outbound_mode: 'mock', llm_mode: 'mock', scheduler_enabled: false });
+      const preview = await request(s.app).post('/api/v1/reminders/preview').send({ channel: 'email', recipients: 'a@example.invalid' });
+      expect(preview.status).toBe(200);
+      expect(preview.body.data.mode).toBe('mock');
+      const sent = await request(s.app).post('/api/v1/reminders/send').send({ snapshot_id: preview.body.data.id });
+      expect(sent.status).toBe(202);
+      await s.notifications.processQueue();
+      expect(s.store.require('notifications', sent.body.data.id).status).toBe('mock_completed');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
   it('includes protocol name and clause locator in a detailed reminder preview', async () => {
     const s = setup();
