@@ -1,0 +1,126 @@
+import { chmodSync, copyFileSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { dirname, resolve } from 'node:path';
+import { resolveModelConfig } from '../packages/integrations/src/model-config';
+import { resolveNotificationVerification, type VerificationChannel } from './live-notification-config';
+
+export const secretKeys = new Set(['LLM_API_KEY', 'GLM_API_KEY', 'SMTP_PASS', 'FEISHU_WEBHOOK_URL']);
+export const supportedKeys = [
+  'APP_MODE', 'HOST', 'PORT', 'APP_TIMEZONE', 'DATABASE_FILE', 'STORAGE_DIR', 'BACKUP_DIR', 'MAX_UPLOAD_BYTES',
+  'LLM_MODE', 'LLM_PROVIDER', 'LLM_API_KEY', 'LLM_MODEL', 'LLM_BASE_URL', 'LLM_JSON_MODE', 'LLM_TIMEOUT_MS',
+  'LLM_MAX_TOKENS', 'LLM_REASONING_EFFORT', 'LLM_TEMPERATURE', 'GLM_API_KEY', 'GLM_MODEL', 'GLM_BASE_URL',
+  'ALLOW_EXTERNAL_MODEL', 'OUTBOUND_MODE', 'SCHEDULER_ENABLED', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE',
+  'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'MAIL_TO', 'FEISHU_WEBHOOK_URL', 'FEISHU_KEYWORD',
+] as const;
+export type LocalEnv = Record<string, string>;
+
+export function parseEnv(text: string): LocalEnv {
+  const values: LocalEnv = {};
+  for (const raw of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!match) continue;
+    let value = match[2].trim();
+    if (value.startsWith('"') && value.endsWith('"')) {
+      try { value = JSON.parse(value) as string; } catch { value = value.slice(1, -1); }
+    } else if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+    values[match[1]] = value;
+  }
+  return values;
+}
+
+export function quoteEnvValue(value: string): string {
+  return value === '' || /[\s#='"\\]/.test(value) ? JSON.stringify(value) : value;
+}
+
+/** Update known keys while retaining comments and unknown deployment settings. */
+export function renderEnv(template: string, values: LocalEnv): string {
+  const seen = new Set<string>();
+  const lines = template.replace(/^\uFEFF/, '').split(/\r?\n/).map(line => {
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=.*$/);
+    if (!match || !(match[1] in values)) return line;
+    seen.add(match[1]); return `${match[1]}=${quoteEnvValue(values[match[1]])}`;
+  });
+  for (const key of supportedKeys) if (key in values && !seen.has(key)) lines.push(`${key}=${quoteEnvValue(values[key])}`);
+  return `${lines.filter((line, index, all) => index !== all.length - 1 || line !== '').join('\n')}\n`;
+}
+
+export function atomicWriteEnv(file: string, content: string): void {
+  const target = resolve(file); mkdirSync(dirname(target), { recursive: true });
+  const temp = `${target}.tmp-${process.pid}-${Date.now()}-${randomUUID()}`;
+  writeFileSync(temp, content, { encoding: 'utf8', mode: 0o600 }); chmodSync(temp, 0o600);
+  try { renameSync(temp, target); }
+  catch (error) {
+    // Windows cannot atomically replace an existing file with renameSync.
+    // Remove the old target only for that platform-specific fallback.
+    if (process.platform !== 'win32') throw error;
+    rmSync(target, { force: true }); renameSync(temp, target);
+  }
+  chmodSync(target, 0o600);
+}
+
+export function backupEnv(file: string, backupRoot = resolve('var', 'config-backups')): string | null {
+  if (!existsSync(file)) return null;
+  mkdirSync(backupRoot, { recursive: true, mode: 0o700 });
+  const target = resolve(backupRoot, `.env.${Date.now()}-${process.pid}-${randomUUID()}.bak`); copyFileSync(file, target); chmodSync(target, 0o600); return target;
+}
+
+function bool(value: string | undefined): boolean | undefined {
+  if (value === undefined || value === '') return undefined;
+  return value === 'true' ? true : value === 'false' ? false : undefined;
+}
+
+function publicSecret(value: string | undefined): { configured: boolean } {
+  return { configured: Boolean(value?.trim()) };
+}
+
+export type CheckResult = { ok: boolean; code: string; message: string; detail?: unknown };
+
+export function checkConfiguration(values: LocalEnv, options: { checkNode?: boolean } = {}): { ok: boolean; checks: CheckResult[]; public: Record<string, unknown> } {
+  const checks: CheckResult[] = [];
+  const add = (ok: boolean, code: string, message: string, detail?: unknown) => checks.push({ ok, code, message, ...(detail === undefined ? {} : { detail }) });
+  const port = Number(values.PORT || '8765');
+  add(Number.isInteger(port) && port >= 1 && port <= 65535, 'PORT_VALID', '端口配置有效。', { port });
+  const maxBytes = Number(values.MAX_UPLOAD_BYTES || '20971520');
+  add(Number.isSafeInteger(maxBytes) && maxBytes > 0, 'UPLOAD_LIMIT_VALID', '上传上限有效。');
+  const llmMode = values.LLM_MODE || 'mock';
+  add(llmMode === 'mock' || llmMode === 'live', 'LLM_MODE_VALID', '模型模式有效。', { mode: llmMode });
+  const model = resolveModelConfig(values);
+  if (llmMode === 'mock') add(true, 'MODEL_READY_MOCK', '模拟模型无需密钥。');
+  else add(model.ready, model.ready ? 'MODEL_READY' : 'MODEL_NOT_READY', model.ready ? '真实模型配置有效。' : '真实模型配置未就绪。', { issues: model.issues.map(issue => issue.code) });
+  const outbound = values.OUTBOUND_MODE || 'mock';
+  add(outbound === 'mock' || outbound === 'live', 'OUTBOUND_MODE_VALID', '通知模式有效。', { mode: outbound });
+  const liveChannelReady: boolean[] = [];
+  for (const channel of ['email', 'feishu'] as VerificationChannel[]) {
+    const result = resolveNotificationVerification(channel, values);
+    const code = channel === 'email' ? 'SMTP_READY' : 'FEISHU_READY';
+    if (outbound === 'mock') add(true, `${code}_MOCK`, `${channel === 'email' ? '邮件' : '飞书'}模拟模式无需真实凭据。`, { configured: result.configured });
+    else {
+      liveChannelReady.push(result.configured);
+      add(result.configured, result.configured ? code : `${code}_NOT_READY`, result.configured ? `${channel === 'email' ? '邮件' : '飞书'}配置有效。` : `${channel === 'email' ? '邮件' : '飞书'}配置未就绪。`, { issues: result.issues.map(issue => issue.code) });
+    }
+  }
+  const scheduler = bool(values.SCHEDULER_ENABLED);
+  add(scheduler !== undefined || values.SCHEDULER_ENABLED === undefined, 'SCHEDULER_VALUE_VALID', '自动提醒开关配置有效。', { enabled: scheduler ?? false });
+  if (scheduler && outbound !== 'live') add(false, 'SCHEDULER_REQUIRES_LIVE', '开启自动提醒前必须使用真实通知模式。');
+  if (outbound === 'live' && !liveChannelReady.some(Boolean)) add(false, 'NO_LIVE_CHANNEL', '至少需要配置一个真实通知渠道。');
+  const database = resolve(values.DATABASE_FILE || 'var/app.sqlite');
+  const storage = resolve(values.STORAGE_DIR || 'storage');
+  const backup = resolve(values.BACKUP_DIR || 'backups');
+  for (const [name, path] of [['DATABASE_FILE', database], ['STORAGE_DIR', storage], ['BACKUP_DIR', backup]] as const) {
+    try { mkdirSync(name === 'DATABASE_FILE' ? dirname(path) : path, { recursive: true }); add(true, `${name}_PATH_VALID`, `${name}路径可用。`); }
+    catch { add(false, `${name}_PATH_INVALID`, `${name}路径不可写。`); }
+  }
+  if (options.checkNode) {
+    const [major, minor, patch] = process.versions.node.split('.').map(Number);
+    add(major > 22 || (major === 22 && (minor > 22 || (minor === 22 && patch >= 2))), 'NODE_VERSION_VALID', 'Node.js版本满足要求。', { node: process.versions.node });
+  }
+  const publicConfig = {
+    node: process.versions.node, llm_mode: llmMode, llm_provider: model.provider, llm_model: model.model || null,
+    outbound_mode: outbound, scheduler_enabled: scheduler ?? false, port, max_upload_bytes: maxBytes,
+    secrets: { llm_api_key: publicSecret(values.LLM_API_KEY || (model.provider === 'glm' ? values.GLM_API_KEY : '')), smtp_pass: publicSecret(values.SMTP_PASS), feishu_webhook: publicSecret(values.FEISHU_WEBHOOK_URL) },
+  };
+  const blocking = checks.filter(check => !check.ok && !['MODEL_NOT_READY', 'SMTP_READY_NOT_READY', 'FEISHU_READY_NOT_READY'].includes(check.code));
+  return { ok: blocking.length === 0 && (llmMode !== 'live' || model.ready) && (outbound !== 'live' || liveChannelReady.some(Boolean)), checks, public: publicConfig };
+}
