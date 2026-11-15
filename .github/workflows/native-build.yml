@@ -1,0 +1,39 @@
+name: native installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run native:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-installer
+          path: dist-native/*.dmg
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run native:runtime -- --platform=win32 --arch=x64
+      - run: npm run native:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-installer
+          path: dist-native/*Setup*.exe

@@ -1,0 +1,38 @@
+appId: com.yizhuang.postinvestment
+productName: 亦庄国投投后管理系统
+asar: false
+npmRebuild: false
+directories:
+  output: dist-native
+  buildResources: desktop/resources
+files:
+  - desktop/**
+  - dist/**
+  - apps/web/dist/**
+  - apps/server/src/**
+  - packages/**
+  - scripts/**
+  - database/**
+  - node_modules/**
+  - package.json
+  - .node-version
+  - .env.example
+extraResources:
+  - from: desktop/runtime
+    to: runtime
+    filter:
+      - '**/*'
+mac:
+  category: public.app-category.business
+  target:
+    - dmg
+  artifactName: '${productName}-${version}-${arch}.${ext}'
+win:
+  target:
+    - nsis
+  artifactName: '${productName}-Setup-${version}-${arch}.${ext}'
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

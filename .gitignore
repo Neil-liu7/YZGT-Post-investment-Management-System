@@ -1,8 +1,10 @@
 node_modules/
 node_modules
 dist/
+dist-native/
 build/
 apps/web/dist/
+desktop/runtime/
 var/
 storage/
 backups/

@@ -20,6 +20,7 @@ process.env.NO_PROXY = [process.env.NO_PROXY, process.env.no_proxy, '127.0.0.1',
 process.env.no_proxy = process.env.NO_PROXY;
 const port = Number(process.env.DEMO_PORT || 8896);
 const baseURL = `http://127.0.0.1:${port}`;
+const pauseMs = Number(process.env.DEMO_PAUSE_MS || 2800);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const outputDir = resolve(process.env.DEMO_OUTPUT || join(root, 'var', `功能演示-${stamp}`));
 const serverLog = join(outputDir, 'server.log');
@@ -67,13 +68,18 @@ async function overlay(page, text) {
     element.textContent = label;
   }, text);
   await frame(page);
-  await delay(850);
+  await delay(pauseMs);
 }
 
 let frameNumber = 0;
 async function frame(page) {
   frameNumber += 1;
   await page.screenshot({ path: join(framesDir, `frame-${String(frameNumber).padStart(4, '0')}.png`), fullPage: false });
+}
+
+async function showSection(page, label, y = 0) {
+  await overlay(page, label);
+  if (y > 0) { await page.evaluate(scrollY => globalThis.scrollTo({ top: scrollY, behavior: 'instant' }), y); await frame(page); await delay(pauseMs); }
 }
 
 async function api(path, options = {}) {
@@ -105,31 +111,47 @@ async function main() {
     await expectVisible(page, 'heading', '样例协议演示项目');
     const projectId = new URL(page.url()).pathname.split('/')[2];
 
-    await overlay(page, '2. 上传样例协议');
+    const calendar = await api('/calendars/import-preview', { method: 'POST', body: JSON.stringify({ name: '演示工作日日历', region: '北京', start_on: '2026-01-01', end_on: '2026-12-31', source: '样例协议演示日历', overrides: { '2026-01-03': true, '2026-01-04': false } }) });
+    await api(`/calendars/${calendar.id}/confirm`, { method: 'POST', body: JSON.stringify({ version: calendar.version }) });
+
+    await showSection(page, '2. 项目概览：协议、事件、义务与履约事项集中管理');
+    await showSection(page, '3. 上传样例协议');
     await page.getByRole('link', { name: '协议文件', exact: true }).click();
     await page.getByLabel('选择协议文件', { exact: true }).setInputFiles(samplePath);
     await expectVisible(page, 'link', 'agreement.txt');
     await page.getByRole('link', { name: 'agreement.txt', exact: true }).click();
     await expectVisible(page, 'heading', 'agreement.txt');
 
-    await overlay(page, '3. 一键提取关键事件与义务');
+    await showSection(page, '4. 查看解析原文与文件信息', 450);
+    await showSection(page, '5. 一键提取关键事件与义务');
     await page.getByLabel('补充提取要求', { exact: true }).fill('重点关注出资、登记材料和季度报送；日期不明确时保留待确认。');
     await page.getByRole('button', { name: '一键提取事件与义务', exact: true }).click();
     await expectVisible(page, 'heading', '关键事件与义务审核');
     await expectVisible(page, 'button', '预览确认结果');
 
-    await overlay(page, '4. 人工审核候选并预览');
+    await showSection(page, '6. 联合审核：事件候选、义务候选和原文依据', 520);
+    await showSection(page, '7. 审核补充要求与期限规则');
     await page.getByRole('button', { name: '预览确认结果', exact: true }).click();
     const preview = page.getByRole('region', { name: '确认结果预览', exact: true });
     await preview.waitFor(); await delay(900);
     await preview.getByLabel('已核对所选候选和原文', { exact: true }).check();
-    await overlay(page, '5. 确认生成正式履约记录');
+    await showSection(page, '8. 期限预览：确认日期、规则和待补条件');
+    await showSection(page, '9. 确认生成正式事件、义务和履约事项');
     await preview.getByRole('button', { name: '确认生成正式记录', exact: true }).click();
     await assertion(page.getByRole('status')).toContainText('已确认导入');
     await page.getByRole('link', { name: '查看项目事项 →', exact: true }).click();
     await expectVisible(page, 'heading', '样例协议演示项目');
 
-    await overlay(page, '6. 打开履约事项并完成事项');
+    await page.goto(`${baseURL}/projects/${projectId}/events`); await page.waitForLoadState('networkidle');
+    await showSection(page, '10. 关键事件：查看起算条件和未知日期');
+    await page.goto(`${baseURL}/projects/${projectId}/obligations`); await page.waitForLoadState('networkidle');
+    await showSection(page, '11. 义务规则：查看来源、期限规则和变更入口', 480);
+    await page.goto(`${baseURL}/maintenance`); await page.waitForLoadState('networkidle');
+    await showSection(page, '12. 工作日日历与数据维护');
+    await page.goto(`${baseURL}/projects/${projectId}`); await page.waitForLoadState('networkidle');
+    await showSection(page, '13. 项目概览：按截止日跟踪履约事项');
+
+    await showSection(page, '14. 打开履约事项并完成事项');
     const tasks = await api(`/projects/${projectId}/tasks?page_size=100`);
     if (!tasks.items?.length) throw new Error('样例协议没有生成履约事项。');
     await page.getByRole('link', { name: tasks.items[0].title, exact: true }).click();
@@ -140,7 +162,9 @@ async function main() {
     await page.getByRole('button', { name: '确认完成', exact: true }).click();
     await assertion(page.getByText('已完成', { exact: true }).first()).toBeVisible();
 
-    await overlay(page, '7. 生成提醒预览并模拟发送');
+    await page.goto(`${baseURL}/history?project_id=${projectId}`); await page.waitForLoadState('networkidle');
+    await showSection(page, '15. 操作记录：追溯上传、审核、确认和完成');
+    await showSection(page, '16. 生成提醒预览并模拟发送');
     await page.goto(`${baseURL}/reminders`); await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: '生成发送预览', exact: true }).click();
     await expectVisible(page, 'text', '模拟发送预览');
@@ -148,7 +172,7 @@ async function main() {
     await page.getByLabel('发送正文').fill('样例协议事项已完成，这是一条模拟提醒消息。');
     await page.getByRole('button', { name: '确认模拟发送', exact: true }).click();
     await assertion(page.getByRole('status').filter({ hasText: '模拟完成' })).toBeVisible();
-    await overlay(page, '演示完成 · 数据全程为合成数据，通知为模拟发送');
+    await showSection(page, '演示完成 · 数据全程为合成数据，通知为模拟发送');
     await page.screenshot({ path: join(outputDir, 'final.png'), fullPage: true });
   } finally {
     const video = recordVideo ? page.video() : null;
