@@ -1,0 +1,15 @@
+{
+  "status": "succeeded",
+  "scope": "real_protocol_derived_summary",
+  "channel": "feishu",
+  "target": "已配置的飞书测试群",
+  "subject": "拙河科技协议测试摘要",
+  "content_sha256": "7c1a758b5f3593d0997e240eb8f9e8df270d933124be4e9684ee81550a414881",
+  "protocol_data_sent": "summary_only",
+  "summary": "5份真实协议解析成功；模拟联合提取生成5个事件、6个义务和6个履约事项；部分期限仍待事件日期核对。",
+  "new_transmission_attempts": 1,
+  "transport_state": "succeeded",
+  "receipt_status": "not_confirmed",
+  "recorded_at": "2026-11-15T11:43:19Z",
+  "note": "用户明确要求全链路使用真实协议内容并授权真实飞书联动；本次仅发送协议测试摘要，不发送协议正文或敏感条款。"
+}
