@@ -76,4 +76,17 @@ describe('local configuration self-check', () => {
     expect(result.status).toBe('invalid');
     expect(result.checks.map(check => check.code)).toContain('SUPERVISOR_ALERT_URL_VALID');
   });
+
+  it('validates OCR mode and timeout without probing external engines', () => {
+    const configured = inspectConfiguration({ ...base, OCR_MODE: 'tesseract', OCR_LANG: 'chi_sim+eng', OCR_TIMEOUT_MS: '120000' }, { checkPaths: false });
+    expect(configured.status).toBe('ready');
+    expect(configured.checks).toEqual(expect.arrayContaining([
+      { code: 'OCR_MODE_VALID', state: 'ok', message: 'OCR模式配置有效。' },
+      { code: 'OCR_TIMEOUT_VALID', state: 'ok', message: 'OCR超时时间有效。' },
+    ]));
+
+    const invalid = inspectConfiguration({ ...base, OCR_MODE: 'cloud', OCR_TIMEOUT_MS: '900' }, { checkPaths: false });
+    expect(invalid.status).toBe('invalid');
+    expect(invalid.checks.map(check => check.code)).toEqual(expect.arrayContaining(['OCR_MODE_VALID', 'OCR_TIMEOUT_VALID']));
+  });
 });

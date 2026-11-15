@@ -1,7 +1,9 @@
 import { extname, resolve, sep } from 'node:path';
+import { OcrError, resolveOcrProvider, type OcrMode, type OcrProvider } from './ocr';
 export type Locator = { page?: number; paragraph?: number };
 export type ParsedClause = { text: string; locator: Locator; clause_number?: string };
 export type ParsedDocument = { text: string; clauses: ParsedClause[]; parser: string };
+export type ParseDocumentOptions = { ocrMode?: OcrMode; ocrProvider?: OcrProvider; env?: Record<string, string | undefined> };
 export class IntegrationError extends Error {
   constructor(public code: string, message: string, public status = 422) { super(message); }
 }
@@ -12,7 +14,10 @@ export function clause(text: string, locator: Locator): ParsedClause {
 export function paragraphs(text: string): ParsedClause[] {
   return text.replace(/\r\n?/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean).map((t, i) => clause(t, { paragraph: i + 1 }));
 }
-export async function parseDocument(buffer: Buffer, filename: string): Promise<ParsedDocument> {
+function ocrParagraphs(page: number, text: string): ParsedClause[] {
+  return text.replace(/\r\n?/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean).map((t, i) => clause(t, { page, paragraph: i + 1 }));
+}
+export async function parseDocument(buffer: Buffer, filename: string, options: ParseDocumentOptions = {}): Promise<ParsedDocument> {
   const extension = extname(filename).toLowerCase();
   if (extension === '.doc') throw new IntegrationError('UNSUPPORTED_DOCUMENT', '旧版 DOC 暂不支持，请转换为 DOCX 或文字型 PDF。');
   if (!['.pdf', '.docx', '.txt', '.md'].includes(extension)) throw new IntegrationError('UNSUPPORTED_DOCUMENT', '仅支持 PDF、DOCX、TXT 和 Markdown 文件。');
@@ -29,7 +34,7 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<P
     try {
       const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer });
-      if (!result.value.trim()) throw new IntegrationError('SCANNED_DOCUMENT', '文件没有可读取文本；如为扫描件，请先使用 OCR，首版暂不提供 OCR。');
+      if (!result.value.trim()) throw new IntegrationError('SCANNED_DOCUMENT', 'DOCX 没有可读取文本；当前 OCR 仅支持扫描 PDF，请转换为可复制文字的 DOCX 或 PDF。');
       return { text: result.value, clauses: paragraphs(result.value), parser: 'mammoth-1.9.1' };
     } catch (error) {
       if (error instanceof IntegrationError) throw error;
@@ -60,7 +65,20 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<P
       if (line.trim()) lines.push(line.trim());
       clauses.push(...lines.map((t, i) => clause(t, { page, paragraph: i + 1 })));
     }
-    if (!clauses.length) throw new IntegrationError('SCANNED_DOCUMENT', 'PDF 没有可读取的文本，可能是扫描件；请先使用 OCR，首版暂不提供 OCR。');
+    if (!clauses.length) {
+      const provider = resolveOcrProvider({ mode: options.ocrMode, provider: options.ocrProvider, env: options.env });
+      if (!provider) throw new IntegrationError('SCANNED_DOCUMENT', 'PDF 没有可读取的文本，可能是扫描件；请配置 OCR_MODE=mock（演示）或 OCR_MODE=tesseract 后重试。');
+      try {
+        const ocr = await provider(buffer, filename);
+        const ocrClauses = ocr.pages.flatMap(page => ocrParagraphs(page.page, page.text));
+        if (!ocrClauses.length) throw new OcrError('OCR_EMPTY', 'OCR 未识别出可用文本，请检查扫描质量或语言包。');
+        return { text: ocrClauses.map(c => c.text).join('\n'), clauses: ocrClauses, parser: ocr.parser || 'ocr-v1' };
+      } catch (error) {
+        if (error instanceof IntegrationError) throw error;
+        if (error instanceof OcrError) throw new IntegrationError(error.code, error.message);
+        throw new IntegrationError('OCR_FAILED', `OCR 失败：${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
     return { text: clauses.map(c => c.text).join('\n'), clauses, parser: 'pdfjs-dist-4.10.38' };
   } catch (error: any) {
     if (error instanceof IntegrationError) throw error;

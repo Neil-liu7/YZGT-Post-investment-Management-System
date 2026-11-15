@@ -11,6 +11,7 @@ export const supportedKeys = [
   'LLM_MAX_TOKENS', 'LLM_REASONING_EFFORT', 'LLM_TEMPERATURE', 'GLM_API_KEY', 'GLM_MODEL', 'GLM_BASE_URL',
   'ALLOW_EXTERNAL_MODEL', 'OUTBOUND_MODE', 'SCHEDULER_ENABLED', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE',
   'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'MAIL_TO', 'FEISHU_WEBHOOK_URL', 'FEISHU_KEYWORD',
+  'OCR_MODE', 'OCR_MOCK_TEXT', 'OCR_TESSERACT_PATH', 'OCR_PDFTOPPM_PATH', 'OCR_LANG', 'OCR_TIMEOUT_MS',
   'BACKUP_SCHEDULE_ENABLED', 'BACKUP_INTERVAL_HOURS', 'BACKUP_RETENTION', 'SUPERVISOR_LOG_DIR',
   'SUPERVISOR_LOG_MAX_BYTES', 'SUPERVISOR_LOG_RETENTION', 'SUPERVISOR_ALERT_FILE',
   'SUPERVISOR_ALERT_WEBHOOK_URL', 'SUPERVISOR_ALERT_COOLDOWN_MINUTES',
@@ -107,6 +108,10 @@ export function checkConfiguration(values: LocalEnv, options: { checkNode?: bool
   const scheduler = bool(values.SCHEDULER_ENABLED);
   add(scheduler !== undefined || values.SCHEDULER_ENABLED === undefined, 'SCHEDULER_VALUE_VALID', '自动提醒开关配置有效。', { enabled: scheduler ?? false });
   if (scheduler && outbound !== 'live') add(false, 'SCHEDULER_REQUIRES_LIVE', '开启自动提醒前必须使用真实通知模式。');
+  const ocrMode = values.OCR_MODE || 'disabled';
+  add(['disabled', 'mock', 'tesseract'].includes(ocrMode), 'OCR_MODE_VALID', 'OCR模式配置有效。', { mode: ocrMode });
+  const ocrTimeout = Number(values.OCR_TIMEOUT_MS || '120000');
+  add(Number.isSafeInteger(ocrTimeout) && ocrTimeout >= 1000 && ocrTimeout <= 900000, 'OCR_TIMEOUT_VALID', 'OCR超时时间有效。', { milliseconds: ocrTimeout });
   const backupEnabled = bool(values.BACKUP_SCHEDULE_ENABLED);
   add(backupEnabled !== undefined || values.BACKUP_SCHEDULE_ENABLED === undefined, 'BACKUP_SCHEDULE_VALUE_VALID', '定时备份开关配置有效。', { enabled: backupEnabled ?? false });
   const backupInterval = Number(values.BACKUP_INTERVAL_HOURS || '24');
