@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { draftDeadlineRuleSchema } from '../../../packages/contracts/src/index';
 import { ApiError, continuousPeriod, items, patch, post, type Entity } from './api';
-import { Badge, Card, Empty, ErrorBox, Field, Loading, Modal, PageTitle, SaveForm, sourceLocation, useAllResource } from './components';
+import { Badge, Card, Empty, ErrorBox, Field, Loading, Modal, PageTitle, SaveForm, sourceLocation, useAllResource, useResource } from './components';
 import { RuleEditor, blankRule } from './RuleEditor';
 import { candidateReferences, draftIssue, eventKey, eventTypes, requiredEventDrafts, reviewEvents, ruleSummary } from './jointReviewData';
 import s from './Workspace.module.css';
@@ -15,6 +15,9 @@ const available = (record: Entity) => record.review_state !== 'approved' && reco
 export function JointReviewPage({ run, loading, error: loadError, reload }: Props) {
   const drafts: Entity[] = run.candidates ?? run.drafts ?? [];
   const events: Entity[] = run.event_candidates ?? [];
+  const document = useResource<Entity>(`/documents/${run.document_id}`);
+  const protocolName = run.protocol_name ?? run.document_name ?? run.original_name ?? run.document?.original_name ?? document.data?.original_name ?? '来源文件';
+  const protocolFile = run.original_name ?? run.document?.original_name ?? document.data?.original_name ?? '—';
   const existing = useAllResource(`/projects/${run.project_id}/events`);
   const calendars = useAllResource('/calendars');
   const [selected, setSelected] = useState(new Set<string>());
@@ -118,7 +121,15 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
       <Link className={s.textButton} to={`/documents/${run.document_id}`}>返回原文重新提取</Link>
     </div>}
     {run.prompt && <Card title="本次补充提取要求"><p className={s.prewrap}>{run.prompt}</p></Card>}
-    <Card title="本次协议来源"><dl className={s.details}><dt>协议名称</dt><dd>{run.protocol_name ?? run.document_name ?? run.original_name ?? run.document?.original_name ?? '来源文件'}</dd><dt>原始文件</dt><dd>{run.original_name ?? run.document?.original_name ?? '—'}</dd><dt>提取批次</dt><dd>{run.id?.slice(0, 12) ?? '—'}</dd><dt>审核要求</dt><dd>事件、义务、期限和原文定位均需逐条核对</dd></dl></Card>
+    <Card title="本次协议来源"><dl className={s.details}><dt>协议名称</dt><dd className={j.breakWord}>{protocolName}</dd><dt>原始文件</dt><dd className={j.breakWord}>{protocolFile}</dd><dt>提取批次</dt><dd>{run.id?.slice(0, 12) ?? '—'}</dd><dt>审核要求</dt><dd>事件、义务、期限和原文定位均需逐条核对</dd></dl></Card>
+    <Card title="协议关键事项概览" aside={<span className={s.muted}>{events.length} 个事件 · {drafts.length} 项义务</span>}>
+      <p className={s.muted}>以下是从本协议原文定位出的候选摘要；完整字段和风险提示请在下方逐条审核。</p>
+      <div className={j.overviewGrid}>
+        <div><strong>关键事件</strong>{events.length ? <ul>{events.map(event => <li key={event.id}>{event.name} · {event.occurred_on ?? '日期待核对'} · {event.clause_number ?? '条款待核对'} · {sourceLocation(event)}</li>)}</ul> : <p className={s.muted}>未识别到关键事件</p>}</div>
+        <div><strong>关键义务</strong>{drafts.length ? <ul>{drafts.slice(0, 20).map(draft => <li key={draft.id}>{draft.title} · {draft.obligor || '主体待核对'} · {draft.rule?.original_expression || '期限待核对'} · {draft.clause_number ?? '条款待核对'}</li>)}</ul> : <p className={s.muted}>未识别到义务候选</p>}</div>
+      </div>
+      {drafts.length > 20 && <p className={s.hint}>当前仅在概览显示前20项，全部 {drafts.length} 项仍保留在下方逐条审核。</p>}
+    </Card>
     <ErrorBox error={loadError} retry={refresh} /><ErrorBox error={error} />
     {success && <div role="status" className={s.notice}>{success}<Link to={`/projects/${run.project_id}`}>查看项目事项 →</Link><Link to={`/projects/${run.project_id}/events`}>查看正式事件 →</Link></div>}
     {!stable && ['queued', 'running'].includes(run.state) && <Loading />}
@@ -130,7 +141,7 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
           const displayDate = event.reuse_event_id ? reused?.occurred_on ?? null : event.occurred_on;
           return <article key={event.id} className={j.candidate} aria-label={`事件候选 ${index + 1}`}>
             <div className={s.reviewHeading}><label className={s.checkbox}><input type="checkbox" aria-label={`选择事件 ${index + 1}`} checked={eventIds.has(event.id)} disabled={approved || ignored || required} onChange={e => changeEvent(event.id, e.target.checked)} /><strong>{event.name}</strong></label><Badge value={event.review_state} /></div>
-            <div className={s.reviewGrid}><div className={s.source}><blockquote>{event.source_text}</blockquote><small>{event.clause_number ?? '协议原文'} · {sourceLocation(event)}</small></div><div><dl className={s.details}><dt>事件类型</dt><dd>{eventTypes[event.event_type] ?? '其他事件'}</dd><dt>实际发生日期</dt><dd>{displayDate ?? '待事件：原文未提供可确认的实际日期'}</dd><dt>投资方范围</dt><dd>{event.investor_label || '未限定'}</dd>{event.reuse_event_id && <><dt>复用事件</dt><dd>{reused?.name ?? '现有事件'}</dd></>}</dl>{required && <p className={s.hint}>由所选义务引用，将随义务一起确认；如需取消，请先取消相应义务。</p>}{(event.unresolved_items ?? []).length > 0 && <p className={s.hint}>{event.unresolved_items.join('；')}</p>}<div className={s.actions}><button disabled={approved} onClick={() => { invalidate(); setEditingEvent(event); }}>核对事件</button><button disabled={approved || busy} onClick={() => void ignore(event, 'event')}>{ignored ? '恢复事件候选' : '忽略事件'}</button></div></div></div>
+            <div className={s.reviewGrid}><div className={s.source}><SourceMeta protocolName={protocolName} protocolFile={protocolFile} record={event} /><blockquote className={j.sourceText}>{event.source_text}</blockquote></div><div><dl className={s.details}><dt>事件名称</dt><dd className={j.breakWord}>{event.name}</dd><dt>事件类型</dt><dd>{eventTypes[event.event_type] ?? '其他事件'}</dd><dt>实际发生日期</dt><dd>{displayDate ?? '待事件：原文未提供可确认的实际日期'}</dd><dt>投资方范围</dt><dd className={j.breakWord}>{event.investor_label || '未限定'}</dd>{event.reuse_event_id && <><dt>复用事件</dt><dd className={j.breakWord}>{reused?.name ?? '现有事件'}</dd></>}</dl>{required && <p className={s.hint}>由所选义务引用，将随义务一起确认；如需取消，请先取消相应义务。</p>}<RiskItems items={event.unresolved_items} fallback={displayDate ? '已提取实际日期，仍需核对协议原文。' : '实际日期待核对，不能用计划日期代替。'} /><div className={s.actions}><button disabled={approved} onClick={() => { invalidate(); setEditingEvent(event); }}>核对事件</button><button disabled={approved || busy} onClick={() => void ignore(event, 'event')}>{ignored ? '恢复事件候选' : '忽略事件'}</button></div></div></div>
           </article>;
         })}</div>}
       </Card>
@@ -138,8 +149,8 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
         {!drafts.length ? <Empty title="暂无义务候选">可审核事件候选，或返回原文补充要求后重新提取。</Empty> : <div className={j.candidates}>{drafts.map((draft, index) => {
           const issue = draftIssue(draft, events), approved = draft.review_state === 'approved', ignored = draft.review_state === 'ignored';
           return <article key={draft.id} className={j.candidate} aria-label={`义务候选 ${index + 1}`}>
-            <div className={s.reviewHeading}><label className={s.checkbox}><input type="checkbox" aria-label={`选择候选 ${index + 1}`} checked={selected.has(draft.id)} disabled={approved || ignored || Boolean(issue)} onChange={e => changeDraft(draft.id, e.target.checked)} /><strong>{draft.title}</strong></label><Badge value={draft.review_state} /></div>
-            <div className={s.reviewGrid}><div className={s.source}><blockquote>{draft.source_text}</blockquote><small>{draft.clause_number ?? '协议原文'} · {sourceLocation(draft)}</small></div><div><p>{draft.description}</p><dl className={s.details}><dt>义务主体</dt><dd>{draft.obligor || '待核对'}</dd><dt>负责人</dt><dd>{draft.owner_label || '未指定'}</dd><dt>期限规则</dt><dd>{ruleSummary(draft.rule, eventOptions)}</dd></dl>{issue && <p className={s.hint}>{issue}</p>}{(draft.unresolved_items ?? []).length > 0 && <details><summary>查看提取时的待核对项</summary><p className={s.hint}>{draft.unresolved_items.join('；')}</p></details>}<div className={s.actions}><button disabled={approved} onClick={() => { invalidate(); setEditingDraft(draft); }}>核对并编辑</button><button disabled={approved || busy} onClick={() => void ignore(draft, 'obligation')}>{ignored ? '恢复义务候选' : '忽略候选'}</button></div></div></div>
+            <div className={s.reviewHeading}><label className={s.checkbox}><input aria-label={`选择候选 ${index + 1}`} type="checkbox" checked={selected.has(draft.id)} disabled={approved || ignored || Boolean(issue)} onChange={e => changeDraft(draft.id, e.target.checked)} /><strong className={j.candidateTitle}><span>事项标题</span>{draft.title}</strong></label><Badge value={draft.review_state} /></div>
+            <div className={s.reviewGrid}><div className={s.source}><SourceMeta protocolName={protocolName} protocolFile={protocolFile} record={draft} /><blockquote className={j.sourceText}>{draft.source_text}</blockquote></div><div><dl className={`${s.details} ${j.fieldDetails}`}><dt>事项标题</dt><dd className={j.breakWord}>{draft.title}</dd><dt>义务主体</dt><dd className={j.breakWord}>{draft.obligor || '待核对'}</dd><dt>动作</dt><dd className={j.breakWord}>{draft.action || '待核对'}</dd><dt>交付物</dt><dd className={j.breakWord}>{draft.deliverable || '待核对'}</dd><dt>触发条件</dt><dd className={j.breakWord}>{draft.trigger || '无明确触发条件 / 待核对'}</dd><dt>原期限</dt><dd className={j.breakWord}>{draft.rule?.original_expression || '待核对'}</dd><dt>期限规则</dt><dd className={j.breakWord}>{ruleSummary(draft.rule, eventOptions)}</dd><dt>负责人</dt><dd className={j.breakWord}>{draft.owner_label || '未指定'}</dd></dl>{draft.description && <p className={j.description}><strong>提取说明：</strong>{draft.description}</p>}<RiskItems items={[...(issue ? [issue] : []), ...(draft.unresolved_items ?? [])]} fallback="未发现自动风险；仍需核对原文、责任方和期限计算。" /><div className={s.actions}><button disabled={approved} onClick={() => { invalidate(); setEditingDraft(draft); }}>核对并编辑</button><button disabled={approved || busy} onClick={() => void ignore(draft, 'obligation')}>{ignored ? '恢复义务候选' : '忽略候选'}</button></div></div></div>
           </article>;
         })}</div>}
       </Card>
@@ -163,6 +174,20 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
   </>;
 }
 
+function SourceMeta({ protocolName, protocolFile, record }: { protocolName: string; protocolFile: string; record: Entity }) {
+  return <dl className={j.sourceMeta}>
+    <dt>协议名称</dt><dd className={j.breakWord}>{protocolName}</dd>
+    <dt>来源文件</dt><dd className={j.breakWord}>{protocolFile}</dd>
+    <dt>条款/页码定位</dt><dd className={j.breakWord}>{record.clause_number ?? '条款号待核对'} · {sourceLocation(record)}</dd>
+  </dl>;
+}
+
+function RiskItems({ items, fallback }: { items?: unknown; fallback: string }) {
+  const values = (Array.isArray(items) ? items : []).filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map(item => item.trim());
+  const unique = [...new Set(values)];
+  return <div className={unique.length ? j.risk : j.riskOk}><strong>风险/待核对项</strong>{unique.length ? <ul>{unique.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul> : <p>{fallback}</p>}</div>;
+}
+
 function EventCandidateForm({ event, existing, close, saved }: { event: Entity; existing: Entity[]; close: () => void; saved: () => void }) {
   const [name, setName] = useState(event.name);
   const [type, setType] = useState(event.event_type);
@@ -176,10 +201,10 @@ function EventCandidateForm({ event, existing, close, saved }: { event: Entity; 
 }
 
 function JointDraftForm({ draft, events, projectId, close, saved }: { draft: Entity; events: Entity[]; projectId: string; close: () => void; saved: () => void }) {
-  const [form, setForm] = useState({ title: draft.title ?? '', description: draft.description ?? '', obligor: draft.obligor ?? '', owner_label: draft.owner_label ?? '' });
+  const [form, setForm] = useState({ title: draft.title ?? '', description: draft.description ?? '', obligor: draft.obligor ?? '', action: draft.action ?? '', deliverable: draft.deliverable ?? '', trigger: draft.trigger ?? '', owner_label: draft.owner_label ?? '' });
   const [rule, setRule] = useState(draft.rule ?? blankRule());
   return <Modal title="核对候选义务" close={close} wide><SaveForm cancel={close} label="保存审核结果" onSave={async () => {
     const parsed = draftDeadlineRuleSchema.parse(rule);
     await patch(`/draft-obligations/${draft.id}`, { version: draft.version, ...form, rule: parsed, review_state: 'needs_review' }); saved();
-  }}><blockquote className={s.source}>{draft.source_text}</blockquote><Field label="候选标题"><input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></Field><Field label="候选履约说明"><textarea value={form.description} rows={3} onChange={e => setForm({ ...form, description: e.target.value })} /></Field><div className={s.grid2}><Field label="候选义务主体"><input value={form.obligor} onChange={e => setForm({ ...form, obligor: e.target.value })} /></Field><Field label="候选负责人"><input value={form.owner_label} onChange={e => setForm({ ...form, owner_label: e.target.value })} /></Field></div><RuleEditor value={rule} onChange={setRule} events={events} projectId={projectId} candidateMode /></SaveForm></Modal>;
+  }}><blockquote className={s.source}>{draft.source_text}</blockquote><Field label="候选标题"><input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></Field><Field label="候选履约说明"><textarea value={form.description} rows={3} onChange={e => setForm({ ...form, description: e.target.value })} /></Field><div className={s.grid2}><Field label="候选义务主体"><input value={form.obligor} onChange={e => setForm({ ...form, obligor: e.target.value })} /></Field><Field label="候选负责人"><input value={form.owner_label} onChange={e => setForm({ ...form, owner_label: e.target.value })} /></Field></div><div className={s.grid2}><Field label="动作"><input value={form.action} onChange={e => setForm({ ...form, action: e.target.value })} /></Field><Field label="交付物"><input value={form.deliverable} onChange={e => setForm({ ...form, deliverable: e.target.value })} /></Field></div><Field label="触发条件"><input value={form.trigger} onChange={e => setForm({ ...form, trigger: e.target.value })} /></Field><RuleEditor value={rule} onChange={setRule} events={events} projectId={projectId} candidateMode /></SaveForm></Modal>;
 }

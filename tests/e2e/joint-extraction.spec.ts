@@ -190,3 +190,15 @@ test('部分成功明确仅展示成功候选和失败摘要，可先预览并�
   await notice.getByRole('link', { name: '返回原文重新提取', exact: true }).click();
   await expect(page.getByRole('button', { name: '一键提取事件与义务', exact: true })).toBeEnabled();
 });
+
+test('每条义务候选固定展示来源、定位、业务字段和风险项，窄屏长文本不溢出', async ({ page, request }) => {
+  const longSource = `第1条 ${'公司应按协议约定提交材料并完成后续履约。'.repeat(12)} 公司应于2029年12月31日前完成实缴。`;
+  await openReview(page, request, longSource);
+  const card = page.getByRole('article', { name: '义务候选 1', exact: true });
+  for (const label of ['协议名称', '来源文件', '条款/页码定位', '事项标题', '义务主体', '动作', '交付物', '触发条件', '原期限', '期限规则', '风险/待核对项']) await expect(card).toContainText(label);
+  await expect(card).toContainText('完成实缴');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(card).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  expect(await card.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
+});
