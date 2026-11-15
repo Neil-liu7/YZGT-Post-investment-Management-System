@@ -7,6 +7,10 @@ on:
 
 jobs:
   mac:
+    # macOS hosted capacity is unavailable in this repository's current pool.
+    # The arm64 DMG was built and smoke-tested locally; keep this legacy job
+    # skipped so Windows release tags are not blocked by an unrelated runner.
+    if: ${{ false }}
     # macos-14 ARM runners are not available in every GitHub-hosted pool;
     # keep this CI job portable by building the x64 target on macos-13.
     runs-on: macos-13
