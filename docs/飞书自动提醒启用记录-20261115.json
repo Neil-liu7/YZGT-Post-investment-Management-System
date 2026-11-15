@@ -1,0 +1,56 @@
+{
+  "status": "enabled",
+  "recorded_at": "2026-11-15T04:50:02.204Z",
+  "scope": "user-authorized Feishu automatic reminder enablement",
+  "configuration": {
+    "outbound_mode": "live",
+    "scheduler_enabled": true,
+    "feishu_enabled": true,
+    "mail_enabled": false,
+    "lead_days": 30
+  },
+  "test_message": {
+    "notification_id": "815cf7db-d175-4c5c-bdb7-ab9865afc22e",
+    "status": "succeeded",
+    "mode": "live",
+    "attempts": 1,
+    "user_confirmed_in_test_group": true
+  },
+  "automatic_first_run": {
+    "notification_id": "4225c87a-d4cb-4abb-8b19-29a3f82d5aee",
+    "status": "succeeded",
+    "mode": "live",
+    "purpose": "automatic",
+    "attempts": 1,
+    "item_count": 4,
+    "items": [
+      {
+        "title": "提交登记材料",
+        "due": "2026-11-07",
+        "stage": "OVERDUE"
+      },
+      {
+        "title": "提供收款凭证",
+        "due": "2026-11-13",
+        "stage": "OVERDUE"
+      },
+      {
+        "title": "提供交割文件",
+        "due": "2026-11-21",
+        "stage": "T7"
+      },
+      {
+        "title": "报送季度财务报表",
+        "due": "2026-10-30",
+        "stage": "OVERDUE"
+      }
+    ]
+  },
+  "automatic_email_messages": 0,
+  "backup_after": "backups/backup-1794718167687",
+  "backup_after_sealed": true,
+  "backup_after_files": 5,
+  "model_mode": "mock",
+  "real_model_requests": 0,
+  "notes": "自动总开关及飞书计划已启用；邮件计划保持关闭。此前仅确认测试消息在群内出现，自动提醒批次以飞书接口succeeded记录；不将接口接受等同于每位成员已读。"
+}
