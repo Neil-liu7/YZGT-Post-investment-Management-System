@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-node scripts/launch.mjs
+node scripts/desktop-launch.mjs
 pause

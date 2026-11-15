@@ -70,6 +70,7 @@ if (!dryRun) {
     '2. 进入安装目标目录执行：npm ci --no-audit --no-fund',
     '3. 执行：npm run setup:local；按向导检查并写入本机 .env。',
     '4. 执行：npm start，然后打开 http://127.0.0.1:8765。', '',
+    '完成首次配置后，也可以直接双击安装包中的“启动系统.command”（Mac）或“启动系统.cmd”（Windows）。',
     '每台电脑拥有独立数据库、原件和 API 配置；不要复制其他电脑的 .env、var、storage 或 backups。',
   ].join('\n') + '\n');
 }
