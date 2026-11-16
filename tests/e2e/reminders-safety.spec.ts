@@ -106,3 +106,20 @@ test('发送后查询网络失败仍保留批次，恢复查询后清错并得�
   expect(batches.sends()).toBe(1);
   expect(batches.tests()).toBe(0);
 });
+
+test('提醒设置可以临时暂停自动提醒并在页面明确显示状态', async ({ page }) => {
+  await page.goto('/reminders');
+  await page.getByRole('button', { name: '提醒设置', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '提醒计划设置', exact: true });
+  await dialog.getByLabel('暂停自动提醒（手动预览和测试消息仍可用）', { exact: true }).check();
+  await dialog.getByRole('button', { name: '保存提醒设置', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('status').filter({ hasText: '自动提醒已暂停' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('status').filter({ hasText: '自动提醒已暂停' })).toBeVisible();
+  await page.getByRole('button', { name: '提醒设置', exact: true }).click();
+  const reopened = page.getByRole('dialog', { name: '提醒计划设置', exact: true });
+  await expect(reopened.getByLabel('暂停自动提醒（手动预览和测试消息仍可用）', { exact: true })).toBeChecked();
+  await reopened.getByLabel('暂停自动提醒（手动预览和测试消息仍可用）', { exact: true }).uncheck();
+  await reopened.getByRole('button', { name: '保存提醒设置', exact: true }).click();
+});

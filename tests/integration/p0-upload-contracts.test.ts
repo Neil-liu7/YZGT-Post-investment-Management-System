@@ -37,6 +37,17 @@ describe('P0 multipart operation identity', () => {
     expect(r.store.all('extractions')).toHaveLength(1);
   });
 
+  it('queues automatic extraction from the upload API after parsing succeeds', async () => {
+    const r = setup();
+    const response = await request(r.app).post(`/api/v1/projects/${r.project.id}/documents`).attach('file', Buffer.from('第一条 公司应于2029年12月31日前完成实缴。'), '自动协议.txt');
+    expect(response.status).toBe(201);
+    const document = response.body.data;
+    expect(document.state).toBe('parsed');
+    const runs = r.store.all('extractions', { document_id: document.id });
+    expect(runs).toHaveLength(1);
+    expect(['queued', 'running', 'succeeded', 'partial']).toContain(runs[0].state);
+  });
+
   it('replays the original upload and still permits a new intentional version', async () => {
     const r = setup();
     const upload = (key: string, content = bytes) => request(r.app).post(`/api/v1/projects/${r.project.id}/documents`).set('Idempotency-Key', key).attach('file', content, 'synthetic.txt');

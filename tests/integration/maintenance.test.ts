@@ -214,8 +214,9 @@ describe('API uploads and extraction persistence A01 A02 A07 A32', () => {
   });
   it('repeated extraction command reuses one asynchronous run and does not create formal obligations', async () => {
     const { app, store } = apiSetup(); const p = project(store);
-    const uploaded = await request(app).post(`/api/v1/projects/${p.id}/documents`).attach('file', Buffer.from('第1条 公司应于2029年12月31日前完成实缴。'), 'synthetic.txt');
-    expect(uploaded.status).toBe(201); const documentId = uploaded.body.data.id;
+    const document = store.create('documents', { project_id: p.id, state: 'parsed', original_name: 'synthetic.txt', file_version: 1, text: '第1条 公司应于2029年12月31日前完成实缴。' });
+    store.create('clauses', { project_id: p.id, document_id: document.id, text: document.text, locator: { paragraph: 1 } });
+    const documentId = document.id;
     const first = await request(app).post(`/api/v1/documents/${documentId}/extractions`).set('Idempotency-Key', 'extract-once').send({});
     const repeated = await request(app).post(`/api/v1/documents/${documentId}/extractions`).set('Idempotency-Key', 'extract-once').send({});
     expect(first.status).toBe(202); expect(repeated.body.data.id).toBe(first.body.data.id);

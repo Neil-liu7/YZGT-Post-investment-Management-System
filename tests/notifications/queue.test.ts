@@ -195,6 +195,36 @@ describe('persistent notification occurrences and queue', () => {
     expect(s.store.all('attempts')).toHaveLength(0);
     expect(s.store.all('notifications')[0]?.status).toBe('queued');
   });
+  it('pauses automatic scans and queued automatic sends without blocking manual work', async () => {
+    const s = setup(undefined, { OUTBOUND_MODE: 'mock', SCHEDULER_ENABLED: true });
+    s.task();
+    s.service.scan({ force: true });
+    expect(s.store.all('notifications')).toHaveLength(1);
+    const settings = s.store.get('settings', 'default');
+    s.store.update('settings', settings.id, settings.version, { automatic_paused: true });
+    await s.service.tick({ force_enabled: true });
+    expect(s.store.all('scheduler_runs')).toHaveLength(1);
+    expect(s.store.all('scheduler_runs')[0]?.kind).toBe('manual_mock');
+    expect(s.store.all('notifications')[0]?.status).toBe('queued');
+    const preview = s.service.preview({ channel: 'feishu', purpose: 'test' });
+    const manual = s.service.sendSnapshot({ snapshot_id: preview.id });
+    await s.service.processQueue();
+    expect(s.store.require('notifications', manual.id).status).toBe('mock_completed');
+  });
+  it('still processes an explicitly authorized automatic resend while paused', async () => {
+    const first = setup(undefined, { OUTBOUND_MODE: 'live', SCHEDULER_ENABLED: true, FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic', adapter: async () => ({ status: 'unknown' }) });
+    first.task();
+    const batch = first.service.scan({ recovery: true }).notifications[0];
+    await first.service.processQueue();
+    const settings = first.store.get('settings', 'default');
+    first.store.update('settings', settings.id, settings.version, { automatic_paused: true });
+    first.service.resolveUnknown(batch.id, { action: 'resend', reason: '合成人工确认后重发' });
+    const retry = vi.fn(async () => ({ status: 'succeeded' }));
+    const resumed = new NotificationService(first.store, { OUTBOUND_MODE: 'live', SCHEDULER_ENABLED: true, FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic', adapter: retry });
+    await resumed.processQueue();
+    expect(retry).toHaveBeenCalledOnce();
+    expect(first.store.require('notifications', batch.id).status).toBe('succeeded');
+  });
   it('converts an interrupted lease to unknown and never submits it again', async () => {
     const s = setup(); s.task(); s.service.scan({ force: true });
     const n = s.store.all('notifications')[0];

@@ -15,7 +15,7 @@ const clip = (value: unknown, size = 1000) => String(value ?? '').slice(0, size)
 
 export class NotificationService {
   constructor(private store: Store, private config: Row = {}, private clock: () => Date = () => new Date()) {}
-  private setting() { return { feishu_enabled: false, mail_enabled: false, lead_days: 30, send_empty: true, policy_revision: 1, ...this.store.get('settings', 'default') }; }
+  private setting() { return { feishu_enabled: false, mail_enabled: false, automatic_paused: false, lead_days: 30, send_empty: true, policy_revision: 1, ...this.store.get('settings', 'default') }; }
   private env(name: string) { return this.config[name.toLowerCase()] ?? this.config[name] ?? process.env[name]; }
   private mode(request?: string) {
     const configured = this.env('OUTBOUND_MODE') === 'live' ? 'live' : 'mock';
@@ -178,7 +178,7 @@ export class NotificationService {
   async tick(options: { force_enabled?: boolean; recovery?: boolean } = {}) {
     const enabled = this.env('SCHEDULER_ENABLED') === true || this.env('SCHEDULER_ENABLED') === 'true';
     const mockedOverride = options.force_enabled && this.mode() === 'mock';
-    if (enabled || mockedOverride) {
+    if ((enabled || mockedOverride) && !this.setting().automatic_paused) {
       const hhmm = this.currentShanghaiTime();
       if (options.recovery) this.scan({ recovery: true });
       else {
@@ -250,6 +250,7 @@ export class NotificationService {
       const policy = this.setting();
       const candidate = this.store.all('notifications').find(n => ['queued', 'retry_wait'].includes(n.status) && (!n.next_attempt_at || n.next_attempt_at <= this.clock().toISOString())
         && !(n.mode === 'live' && this.env('OUTBOUND_MODE') !== 'live')
+        && !(n.purpose === 'automatic' && policy.automatic_paused && !n.manual_resend_authorized)
         && !(n.purpose === 'automatic' && !n.manual_resend_authorized && ((n.mode === 'live' && !schedulerEnabled) || !(n.channel === 'feishu' ? policy.feishu_enabled : policy.mail_enabled))));
       if (!candidate) break;
       let batch: Row | null = null; let attempt: Row | null = null;

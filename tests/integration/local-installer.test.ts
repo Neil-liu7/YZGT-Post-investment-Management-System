@@ -16,6 +16,7 @@ describe('portable local installation package', () => {
     expect(result.status).toBe('passed');
     const marker = JSON.parse(readFileSync(join(output, '.local-package.json'), 'utf8'));
     expect(marker.format).toBe('yzgt-local-package');
+    expect(marker.source_commit).toMatch(/^[0-9a-f]{40}$/);
     expect(marker.files).toContain('dist/server.mjs');
     expect(marker.files).toContain('apps/web/dist/index.html');
     expect(marker.files).not.toContain('.env');

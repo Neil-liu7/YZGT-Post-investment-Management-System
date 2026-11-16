@@ -1,10 +1,13 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const nodeVersion = readFileSync(join(root, '.node-version'), 'utf8').trim();
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+let sourceCommit = 'unknown';
+try { sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim() || sourceCommit; } catch { /* 发行包也允许从无 Git 的源码目录生成。 */ }
 const args = process.argv.slice(2);
 const valueArgument = flag => { const at = args.indexOf(flag); return at >= 0 ? args[at + 1] : undefined; };
 const outputArgument = args.find(value => value.startsWith('--out='))?.slice('--out='.length) ?? valueArgument('--out');
@@ -56,7 +59,7 @@ for (const name of allow) {
 }
 const marker = {
   format: 'yzgt-local-package', format_version: 1, app_version: packageJson.version,
-  created_at: new Date().toISOString(), node_version: nodeVersion,
+  created_at: new Date().toISOString(), source_commit: sourceCommit, node_version: nodeVersion,
   package_manager: 'npm', install_command: 'npm ci --no-audit --no-fund',
   files: files.sort(), excluded: ['.env', 'var', 'storage', 'backups', 'node_modules', 'logs', 'test-results'],
 };
