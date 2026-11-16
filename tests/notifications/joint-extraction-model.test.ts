@@ -51,6 +51,28 @@ describe('deterministic joint extraction without external services', () => {
     expect(result.prompt_version).toBe('joint-obligations-v1');
     expect(result.candidates.every(c => c.deadline_rule?.confirmation_status === 'needs_review')).toBe(true);
   });
+  it('normalizes Chinese obligation fields instead of copying the whole sentence or inventing a subject', async () => {
+    const result = await extractCandidates('甲方应于2027年3月31日前提交年度财务报告。乙方须在收到付款后5个工作日提供收款凭证。应于交割后20日提交交割文件。', { joint_extraction: true });
+    expect(result.candidates).toHaveLength(3);
+    expect(result.candidates.map(c => ({ title: c.title, action: c.action, deliverable: c.deliverable, obligor: c.obligor, trigger: c.trigger }))).toEqual([
+      { title: '提交年度财务报告', action: '提交', deliverable: '年度财务报告', obligor: '甲方', trigger: '固定日期 2027-03-31' },
+      { title: '提供收款凭证', action: '提供', deliverable: '收款凭证', obligor: '乙方', trigger: '收到款项' },
+      { title: '提交交割文件', action: '提交', deliverable: '交割文件', obligor: '', trigger: '交割' },
+    ]);
+    expect(result.candidates[2].unresolved_items.join('')).toContain('义务主体未明确');
+  });
+  it('handles common subject markers without producing truncated text such as “未方”', async () => {
+    const result = await extractCandidates('公司应当及时办理工商变更登记。基金管理人必须向投资人报送季度报告。', { joint_extraction: true });
+    expect(result.candidates.map(c => [c.title, c.action, c.deliverable, c.obligor])).toEqual([
+      ['办理工商变更登记', '办理', '工商变更登记', '公司'],
+      ['报送季度报告', '报送', '季度报告', '基金管理人'],
+    ]);
+  });
+  it('strips numeric clause prefixes before identifying the responsible party', async () => {
+    const result = await extractCandidates('2.2.7 目标公司应于2029年12月31日前完成登记。', { joint_extraction: true });
+    expect(result.candidates[0]).toMatchObject({ title: '完成登记', action: '完成', deliverable: '登记', obligor: '目标公司', trigger: '固定日期 2029-12-31' });
+  });
+
   it('extracts explicit actual event dates and reuses them for relative obligations', async () => {
     const text = '本协议于2026年8月7日签署。\n公司已于2026年11月6日收到款项。\n双方已于2026年11月1日完成交割。\n' + fixture;
     const result = await extractCandidates(text, { joint_extraction: true });
@@ -152,6 +174,12 @@ describe('joint model response grounding and prompt transport', () => {
   it('supports explicit date labels without confusing them with obligation deadlines', async () => {
     const result=await extractCandidates('协议签署日期为2026年8月7日。',{joint_extraction:true});
     expect(result.event_candidates[0]?.occurred_on).toBe('2026-08-07');
+  });
+  it('does not treat a disclosure-table date as an obligation deadline', () => {
+    const text = '最新银行贷款情况（更新至2026年7月28日）';
+    const result = verifyJointResponse({ event_candidates: [], candidates: [{ title: '贷款情况', description: text, obligor: '', action: '', deliverable: '', trigger: '', deadline_rule: { schema_version: 1, kind: 'fixed', confirmation_status: 'confirmed', original_expression: text, date: '2026-07-28', convention }, source_text: text, locator: { paragraph: 1 }, clause_index: 0, unresolved_items: [] }] }, [{ text, locator: { paragraph: 1 }, clause_index: 0 }]);
+    expect(result.candidates[0].deadline_rule).toBeNull();
+    expect(result.candidates[0].unresolved_items.join('')).toContain('披露或事实日期');
   });
 
   it.each([

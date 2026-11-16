@@ -42,7 +42,11 @@ export class NotificationService {
     const obligation = task.obligation_id ? this.store.get('obligations', task.obligation_id) : null;
     const documentId = task.document_id ?? obligation?.document_id;
     const document = documentId ? this.store.get('documents', documentId) : null;
-    return { task_id: task.id, task_version: task.version, project_id: task.project_id, project_version: project?.version, project_name: clip(project?.name, 300), title: clip(task.title, 2000), owner_label: clip(task.owner_label || obligation?.owner_label || '未指定', 200), status: task.status, effective_due_on: task.effective_due_on ?? null, deadline_state: task.deadline_state, schedule_revision: task.schedule_revision, stage: stage ?? null, document_name: clip(document?.original_name ?? document?.filename ?? '', 400), clause_number: clip(task.clause_number ?? obligation?.clause_number ?? '', 200) };
+    const documentName = document?.original_name ?? document?.filename ?? '';
+    const protocolName = documentName.replace(/\.[^.]+$/, '');
+    const locator = obligation?.source_locator ?? task.source_locator ?? null;
+    const locatorText = locator?.page ? `第${locator.page}页${locator.paragraph ? `第${locator.paragraph}段` : ''}` : locator?.paragraph ? `第${locator.paragraph}段` : '';
+    return { task_id: task.id, task_version: task.version, project_id: task.project_id, project_version: project?.version, project_name: clip(project?.name, 300), protocol_name: clip(protocolName, 400), title: clip(task.title, 2000), action: clip(task.action || obligation?.action || '', 300), deliverable: clip(task.deliverable || obligation?.deliverable || '', 500), trigger: clip(task.trigger || obligation?.trigger || '', 500), original_expression: clip(obligation?.rule?.original_expression || task.rule_snapshot?.original_expression || '', 1000), owner_label: clip(task.owner_label || obligation?.owner_label || '未指定', 200), obligor: clip(obligation?.obligor || task.obligor || '待核对', 300), status: task.status, effective_due_on: task.effective_due_on ?? null, deadline_state: task.deadline_state, schedule_revision: task.schedule_revision, stage: stage ?? null, document_name: clip(documentName, 400), clause_number: clip(task.clause_number ?? obligation?.clause_number ?? '', 200), source_locator: locator, source_location: locatorText, source_text: clip(obligation?.source_text ?? task.source_text ?? '', 500) };
   }
   private content(items: Row[], channel: string, scopeName?: string) {
     const today = businessToday(this.clock());
@@ -50,7 +54,7 @@ export class NotificationService {
     const body = items.length ? items.map(t => {
       const remaining = t.effective_due_on ? daysBetween(today, t.effective_due_on) : null;
       const due = remaining === null ? '待确定期限' : remaining < 0 ? `逾期 ${-remaining} 天` : `剩余 ${remaining} 天`;
-      return `【${t.project_name}】${t.title}\n协议：${t.document_name || '手工或待核对来源'}　条款：${t.clause_number || '未指定'}\n截止：${t.effective_due_on || '待确定'}（${due}）　负责人：${t.owner_label}　状态：${t.status}`;
+      return `【${t.project_name}】${t.protocol_name || t.document_name || '未指定协议'}\n事项：${t.title}\n动作：${t.action || '待核对'}　交付物：${t.deliverable || '待核对'}\n触发条件：${t.trigger || '待核对'}\n原期限：${t.original_expression || '待核对'}\n协议：${t.document_name || '手工或待核对来源'}　${t.clause_number ? `条款：${t.clause_number}　` : ''}${t.source_location ? `位置：${t.source_location}` : ''}\n责任主体：${t.obligor}　负责人：${t.owner_label}\n截止：${t.effective_due_on || '待确定'}（${due}）　状态：${t.status}　期限状态：${t.deadline_state}\n原文：${t.source_text || '暂无可回看的原文片段'}`;
     }).join('\n\n') : '本周无临期事项。';
     return { subject, body, items, business_date: today };
   }

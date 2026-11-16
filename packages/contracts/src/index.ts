@@ -100,6 +100,7 @@ export const deadlineRuleSchema: z.ZodType<DeadlineRule> = ruleUnion.superRefine
 export const obligationSchema = z.object({
   title: z.string().trim().min(1).max(300), description: z.string().max(20000).default(''),
   owner_label: z.string().max(200).default(''), obligor: z.string().max(500).default(''),
+  action: z.string().max(20000).default(''), deliverable: z.string().max(20000).default(''), trigger: z.string().max(20000).default(''),
   source_type: z.enum(['manual', 'ai', 'legacy']), source_description: z.string().max(20000).default(''),
   rule: deadlineRuleSchema, document_id: z.string().min(1).nullable().optional(), document_version_id: z.string().min(1).nullable().optional(),
   source_text: z.string().max(100000).nullable().optional(), source_locator:z.object({page:z.number().int().positive().optional(),paragraph:z.number().int().positive().optional()}).optional(), clause_index:z.number().int().nonnegative().optional(), clause_number: z.string().max(200).nullable().optional(), draft_id: z.string().min(1).nullable().optional(),

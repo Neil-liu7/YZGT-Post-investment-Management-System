@@ -12,6 +12,7 @@ export const jointSystemPrompt = [
   '每个event_candidate包含key（本分块唯一字母数字短键）、name、event_type(signing/investment/closing/registration/other)、occurred_on(YYYY-MM-DD或null)、investor_label、source_text、locator、clause_index、clause_number（有则保留）、unresolved_items。',
   'occurred_on只能是原文明确记载已经发生或明确确认的实际日期；应于、拟于、预计、计划、不迟于某日等计划/义务期限绝不是实际发生日期。没有实际日期必须null；不能使用今天或推算日期补齐。',
   '每项candidates包含title、description、obligor、action、deliverable、trigger、deadline_rule、source_text、locator、clause_index、clause_number（有则保留）、unresolved_items。',
+  'title使用“动作+交付物”的简洁标题；action只填原文动作动词（如提交、提供、报送、完成），deliverable只填动作后的交付物名词短语，不要把期限或整句复制进去。obligor必须逐字来自原文明确主体（公司、甲方、基金管理人等）；主体不明确时填空并加入待确认项，禁止猜测、截断或生成“未方”等主体。trigger只填明确的起算事件或固定日期说明。',
   '一段多个动作或期限分别提取。source_text须逐字来自相同clause_index原文，日期也必须有原文依据。所有规则confirmation_status必须needs_review。',
   '相对/持续规则的事件引用仅使用event_id="candidate-event:<key>"，引用本响应事件或known_event_candidates中的原样key；不得生成正式事件ID或工作日日历ID。可复用先前分块已知的同一事件，但不得跨投资方或批次猜测关联。',
   '规则schema_version=1；fixed包含date/convention；relative包含anchor/offsets/convention；recurring包含frequency(month/quarter/year)、first_period_start（未知填null）、last_period_end（未知填null）、anchor(period_start/period_end)、offsets、convention；continuous包含starts_at/ends_at/review_mode="manual"。',
@@ -29,6 +30,13 @@ const eventWords: Record<EventCandidate['event_type'], RegExp> = {
 };
 const phasesIn = (text: string) => [...text.matchAll(/(?:第?[一二三四五六七八九十百\d]+|首|末|[A-Z])(?:期|次|笔|批|轮|阶段)/g)].map(match => match[0]);
 const factSegments = (text: string) => text.split(/[。；;，,\n]|(?:并且|并|且|随后|继而)(?=(?:已|实际)?于|在)/);
+const stripClausePrefix = (text: string) => text.replace(/^(?:第[零一二三四五六七八九十百\d]+条|\d+(?:\.\d+)*[、.．]?)\s*/, '').trim();
+function deadlineDateSupported(text: string, date: string) {
+  const match = [...text.matchAll(/(\d{4})\s*(?:年|[-/.])\s*(\d{1,2})\s*(?:月|[-/.])\s*(\d{1,2})日?/g)].find(item => `${item[1]}-${item[2].padStart(2, '0')}-${item[3].padStart(2, '0')}` === date);
+  if (!match || match.index === undefined) return false;
+  const window = text.slice(Math.max(0, match.index - 45), Math.min(text.length, match.index + match[0].length + 45));
+  return /应|须|必须|不迟于|不晚于|最迟|截止|期限|之前|前|以内|内/.test(window) && /完成|提交|报送|办理|缴纳|实缴|上市|登记|支付|签订|提供|交付|迁移|核查|回购/.test(text);
+}
 function actualDateSupported(event: EventCandidate, context = event.source_text) {
   if (!event.occurred_on) return true;
   if (!datesIn(event.source_text).has(event.occurred_on)) return false;
@@ -104,6 +112,9 @@ export function verifyJointResponse(raw: unknown, part: Source[], prefix = '', k
       }
     });
     if (unsupportedDate) { rule = null; unresolved.add('规则中的日期无法从该原文核对，请人工补齐，不采用模型猜测日期'); }
+    if (rule?.kind === 'fixed' && !deadlineDateSupported(candidate.source_text, rule.date)) {
+      rule = null; unresolved.add('该日期可能是披露或事实日期，不作为履约截止日，请人工核对');
+    }
     if (rule?.kind === 'recurring' && rule.first_period_start === null) unresolved.add('首个自然周期尚未明确，保留已提取频率及偏移，确认前需补齐');
     if (rule) rule.confirmation_status = 'needs_review';
     return { ...candidate, deadline_rule: rule, locator: source.locator, clause_number: source.clause_number, unresolved_items: [...unresolved] };
@@ -132,9 +143,40 @@ export function mockJointCandidates(clauses: ParsedClause[], legacy: any[], prom
   for (const [index, source] of clauses.entries()) for (const segment of factSegments(source.text)) for (const kind of ['signing', 'investment', 'closing', 'registration'] as const) {
     if ([...datesIn(segment)].some(date => actualDateSupported({ key: kind, name: '', event_type: kind, occurred_on: date, investor_label: '', source_text: segment, locator: source.locator, clause_index: index, unresolved_items: [] }))) event(kind, { ...source, text: segment }, index);
   }
+  const actionVerbs = ['完成', '提交', '提供', '报送', '交付', '办理', '支付', '缴纳', '通知', '签署', '签订', '申请', '取得', '出具', '交纳', '协助', '配合', '不得'];
+  const enrich = (candidate: any) => {
+    const original = stripClausePrefix(String(candidate.description ?? ''));
+    const subjectPrefix = original.match(/^(.{1,80}?)(?:应当|应|须|必须|不得|需要|负责)/)?.[1]?.trim() ?? '';
+    const roleMatches = [...subjectPrefix.matchAll(/甲方、乙方(?:、[^，。]{0,8})?(?:及|和)创始股东|甲方、乙方|甲方|乙方|丙方|各方|目标公司|集团公司|创始股东|本轮投资方|投资方[甲乙丙丁A-Z]?|出资方[甲乙丙丁A-Z]?|承诺方|受让方|转让方|基金管理人|管理人|董事会|股东会|清算组|违约人|公司|企业/g)];
+    const subject = roleMatches.at(-1)?.[0] ?? '';
+    const subjectKnown = Boolean(subject);
+    const marker = original.search(/(?:应当|应|须|必须|不得|需要|负责)/);
+    const body = marker >= 0 ? original.slice(marker + (original.slice(marker).match(/^(?:应当|应|须|必须|不得|需要|负责)/)?.[0].length ?? 0)).trim() : original;
+    const verbPattern = new RegExp(`(?:${actionVerbs.join('|')})`, 'g');
+    const verbMatches = [...body.matchAll(verbPattern)];
+    // Trigger verbs such as 签署/交割 can precede the actual obligation action; choose the last action verb in the sentence.
+    let verbMatch = verbMatches.at(-1);
+    // In “提交申请/提交申请材料”, 申请 is the deliverable noun rather than a second action.
+    if (verbMatch?.[0] === '申请' && verbMatches.length > 1) verbMatch = verbMatches.at(-2);
+    const verb = verbMatch?.[0] ?? (/每季度|每月|每年/.test(body) ? '报送' : '');
+    const beforeVerb = verbMatch ? body.slice(0, verbMatch.index).replace(/^于|^在|^应于/, '').trim() : body;
+    const afterVerb = verbMatch ? body.slice((verbMatch.index ?? 0) + verb.length).replace(/[。；;，,].*$/, '').trim() : '';
+    const deliverable = afterVerb.replace(/^(?:相关|有关|本协议约定的)/, '').trim();
+    const eventMatch = beforeVerb.match(/(?:本)?协议(?:签署|签订)|签署|签订|收到(?:款项|付款)|收款|出资|到账|交割/);
+    const early = beforeVerb.match(/提前\s*[\d一二两三四五六七八九十]+\s*(?:个?工作日|个?月|日|天)/)?.[0] ?? '';
+    const trigger = /每季度结束|每月结束|每年结束/.test(beforeVerb) ? (beforeVerb.match(/每(?:季度|月|年)结束/)?.[0] ?? '')
+      : eventMatch ? (/交割/.test(eventMatch[0]) ? '交割' : /签署|签订/.test(eventMatch[0]) ? '协议签署' : /收到|收款|出资|到账/.test(eventMatch[0]) ? '收到款项' : eventMatch[0])
+      : early || ([...datesIn(original)].find(date => deadlineDateSupported(original, date)) ? `固定日期 ${[...datesIn(original)].find(date => deadlineDateSupported(original, date))}` : beforeVerb.replace(/后|起|之日起|前/g, '').trim());
+    const unresolved = [...(candidate.unresolved_items ?? [])];
+    if (!subjectKnown) unresolved.push('义务主体未明确，请人工核对');
+    if (!verb) unresolved.push('动作未能稳定识别，请人工核对');
+    if (!deliverable) unresolved.push('交付物未能稳定识别，请人工核对');
+    const title = [verb, deliverable].filter(Boolean).join('') || original.slice(0, 120);
+    return { ...candidate, title, description: original, obligor: subjectKnown ? subject : '', action: verb, deliverable, trigger, unresolved_items: [...new Set(unresolved)] };
+  };
   const actions = legacy.flatMap(candidate => {
     const sentences = candidate.description.split(/[。；;]/).filter((text: string) => /应|须|必须|不得|每季度|每月|每年/.test(text));
-    return (sentences.length ? sentences : [candidate.description]).map((description: string) => ({ ...candidate, description, action: description, title: description.replace(/^第[^条]+条\s*/, '').slice(0,120) }));
+    return (sentences.length ? sentences : [candidate.description]).map((description: string) => enrich({ ...candidate, description }));
   });
   let candidates: JointCandidate[] = actions.filter(candidate => !/(?:已|实际).{0,20}(?:完成|提交|提供)/.test(candidate.description) || /应|须|必须|不得|每季度|每月|每年/.test(candidate.description)).map(candidate => {
     const source = clauses[candidate.clause_index], original = candidate.description;
@@ -142,11 +184,12 @@ export function mockJointCandidates(clauses: ParsedClause[], legacy: any[], prom
     const relative = original.match(/(后|前|之日起|起)\s*([\d一二两三四五六七八九十]+)\s*(个?工作日|个?月|年|自然日|日|天)/);
     const digits: Record<string, number> = { 一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9 };
     const number = (text: string): number => /^\d+$/.test(text) ? Number(text) : text.includes('十') ? ((digits[text.split('十')[0]] || 1) * 10 + (digits[text.split('十')[1]] || 0)) : digits[text] || 0;
+    const supportedDate = [...datesIn(original)].find(date => deadlineDateSupported(original, date));
     let rule: any = relative && !cycle && !continuous ? { schema_version:1,kind:'relative',confirmation_status:'needs_review',original_expression:original,
       anchor:{type:'event',event_id:/签署|签订/.test(original)?'unresolved:signature':/交割/.test(original)?'unresolved:closing':/款|出资/.test(original)?'unresolved:payment':'unresolved:event'},
       offsets:[{amount:number(relative[2]) * (relative[1] === '前' ? -1 : 1),unit:parseUnit(relative[3]),include_start_day:false}],convention:{...convention} }
-      : !cycle && !continuous && datesIn(original).size ? { schema_version:1,kind:'fixed',confirmation_status:'needs_review',original_expression:original,date:[...datesIn(original)][0],convention:{...convention} } : null;
-    const unresolved = new Set<string>(['模拟提取结果，须核对义务主体、动作及计数口径']);
+      : !cycle && !continuous && supportedDate ? { schema_version:1,kind:'fixed',confirmation_status:'needs_review',original_expression:original,date:supportedDate,convention:{...convention} } : null;
+    const unresolved = new Set<string>([...(candidate.unresolved_items ?? []), '模拟提取结果，须核对义务主体、动作及计数口径']);
     if (rule?.kind === 'relative') {
       const kind = rule.anchor.event_id.includes('signature') ? 'signing' : rule.anchor.event_id.includes('closing') ? 'closing' : rule.anchor.event_id.includes('payment') ? 'investment' : 'other';
       const trigger = event(kind, { ...source, text: original }, candidate.clause_index); rule.anchor.event_id = candidateEventPrefix + trigger.key;
@@ -172,7 +215,7 @@ export function mockJointCandidates(clauses: ParsedClause[], legacy: any[], prom
       rule = { schema_version: 1, kind: 'continuous', confirmation_status: 'needs_review', original_expression: original, starts_at: { type: 'event', event_id: candidateEventPrefix + trigger.key }, ends_at: null, review_mode: 'manual' };
       unresolved.add('持续义务起止条件需核对，系统不自动证明合规');
     }
-    return { ...candidate, obligor: /^公司/.test(original.replace(/^第[^条]+条\s*/, '')) || /^公司/.test(source.text.replace(/^第[^条]+条\s*/, '')) ? '公司' : candidate.obligor, deadline_rule: rule, unresolved_items: [...unresolved] };
+    return { ...candidate, obligor: candidate.obligor || (/^公司/.test(stripClausePrefix(original)) || /^公司/.test(stripClausePrefix(source.text)) ? '公司' : ''), deadline_rule: rule, unresolved_items: [...unresolved] };
   });
   const filter = /只|仅/.test(prompt) ? [...prompt.matchAll(/财务|报表|季度|出资|实缴|登记|工商|交割|凭证|申请/g)].map(match => match[0]) : [];
   if (filter.length) candidates = candidates.filter(candidate => filter.some(word => `${candidate.title}${candidate.description}`.includes(word)));

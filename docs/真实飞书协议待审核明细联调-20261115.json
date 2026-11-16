@@ -1,0 +1,17 @@
+{
+  "status": "succeeded",
+  "scope": "real_protocol_candidate_detail_summary",
+  "channel": "feishu",
+  "target": "已配置的飞书测试群",
+  "subject": "拙河科技协议待审核事项明细",
+  "content_sha256": "83ab8c2de316a4b684ea7249b793b644ff4b90be5337c9f049dee53c92b6d613",
+  "protocol_data_sent": "candidate_detail_summary",
+  "candidate_count": 6,
+  "review_required": true,
+  "risk_notice": "包含一个模拟计算日期2022-01-29，消息中已明确要求人工核对起算事件和日期。",
+  "new_transmission_attempts": 1,
+  "transport_state": "succeeded",
+  "receipt_status": "not_confirmed",
+  "recorded_at": "2026-11-15T11:50:53Z",
+  "note": "用户反馈摘要消息信息不足后，明确要求使用真实协议内容；本次发送候选事项明细摘要，不发送完整协议正文。"
+}

@@ -18,6 +18,15 @@ const convention = { end_day_adjustment: 'none', month_end: 'clamp', calendar_id
 const bytes = Buffer.from('这是一份合成原件。');
 
 describe('P0 multipart operation identity', () => {
+  it('exposes protocol name and the latest extraction status in the upload list', async () => {
+    const r = setup();
+    const document = r.store.create('documents', { project_id: r.project.id, original_name: '增资协议-示例.pdf', name: '增资协议-示例.pdf', state: 'parsed', file_version: 1, text: bytes.toString('utf8') });
+    const run = r.store.create('extractions', { project_id: r.project.id, document_id: document.id, document_version: 1, state: 'succeeded', mode: 'mock', joint_extraction: true, prompt: '' });
+    const response = await request(r.app).get(`/api/v1/projects/${r.project.id}/documents`);
+    expect(response.status).toBe(200);
+    expect(response.body.data.items.find((item: any) => item.id === document.id)).toMatchObject({ protocol_name: '增资协议-示例', latest_extraction_id: run.id, latest_extraction_state: 'succeeded' });
+  });
+
   it('replays the original upload and still permits a new intentional version', async () => {
     const r = setup();
     const upload = (key: string, content = bytes) => request(r.app).post(`/api/v1/projects/${r.project.id}/documents`).set('Idempotency-Key', key).attach('file', content, 'synthetic.txt');

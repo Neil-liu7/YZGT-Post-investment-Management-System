@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFile } from 'node:fs/promises';
-import { parseDocument, extractCandidates, candidateSchema, normalizeRecipients, feishuRecipientKey, sendOutbound } from '../../packages/integrations/src/index.ts';
+import { parseDocument, mergePdfLines, extractCandidates, candidateSchema, normalizeRecipients, feishuRecipientKey, sendOutbound } from '../../packages/integrations/src/index.ts';
 
 describe('document parsing and guarded extraction', () => {
+  it('joins wrapped PDF lines without merging the next numbered clause', () => {
+    expect(mergePdfLines(['9', '2.2.7 目标公司应在签署后3个月内完成迁', '移注册地址。', '2.2.8 其他条件。'])).toEqual(['2.2.7 目标公司应在签署后3个月内完成迁移注册地址。', '2.2.8 其他条件。']);
+  });
   it('retains paragraph locations and splits two deadlines without inventing an anchor', async () => {
     const parsed = await parseDocument(Buffer.from('第1条 公司应于2029年12月31日前完成实缴。\n第2条 公司应于签署后3个月提交登记材料，并于收到款项后5个工作日提供凭证。\n第3条 每季度结束后30日内报送财务报表。'), '协议.txt');
     const result = await extractCandidates(parsed.clauses);

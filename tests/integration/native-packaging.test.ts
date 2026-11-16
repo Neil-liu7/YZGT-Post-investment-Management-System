@@ -23,6 +23,8 @@ describe('native desktop packaging contract', () => {
     const onboarding = readFileSync('desktop/onboarding.html', 'utf8');
     expect(onboarding).toContain('BACKUP_SCHEDULE_ENABLED');
     expect(onboarding).toContain('SUPERVISOR_ALERT_WEBHOOK_URL');
+    expect(onboarding).toContain('OCR_TESSERACT_PATH');
+    expect(onboarding).toContain('OCR_PDFTOPPM_PATH');
   });
 
   it('provides reproducible runtime fetch and Windows CI entry points', () => {

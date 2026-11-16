@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -32,6 +32,39 @@ describe('notification HTTP contracts', () => {
     expect(history.body.data.items[0].status).toBe('mock_completed');
     expect(history.body.data.items[0].mode).toBe('mock');
     expect(s.store.all('reminders')).toHaveLength(0);
+  });
+  it('forces an HTTP test app to mock mode even when the local environment is live', async () => {
+    vi.stubEnv('OUTBOUND_MODE', 'live');
+    vi.stubEnv('LLM_MODE', 'live');
+    vi.stubEnv('SCHEDULER_ENABLED', 'true');
+    try {
+      const s = setup();
+      expect((await request(s.app).get('/health')).body.data).toMatchObject({ outbound_mode: 'mock', llm_mode: 'mock' });
+      expect((await request(s.app).get('/api/v1/settings')).body.data).toMatchObject({ outbound_mode: 'mock', llm_mode: 'mock', scheduler_enabled: false });
+      const preview = await request(s.app).post('/api/v1/reminders/preview').send({ channel: 'email', recipients: 'a@example.invalid' });
+      expect(preview.status).toBe(200);
+      expect(preview.body.data.mode).toBe('mock');
+      const sent = await request(s.app).post('/api/v1/reminders/send').send({ snapshot_id: preview.body.data.id });
+      expect(sent.status).toBe(202);
+      await s.notifications.processQueue();
+      expect(s.store.require('notifications', sent.body.data.id).status).toBe('mock_completed');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+  it('includes protocol name and clause locator in a detailed reminder preview', async () => {
+    const s = setup();
+    const document = s.store.create('documents', { project_id: s.project.id, original_name: '增资协议-拙河科技.pdf', state: 'parsed', file_version: 1, text: '2.2.7 目标公司应完成登记。' });
+    const obligation = s.store.create('obligations', { project_id: s.project.id, document_id: document.id, document_version_id: document.id, title: '完成登记', action: '完成', deliverable: '登记', trigger: '固定日期 2026-11-18', owner_label: '目标公司', clause_number: '2.2.7', rule: { kind: 'fixed', date: '2026-11-18', original_expression: '2026年11月18日前完成登记', confirmation_status: 'confirmed' } });
+    s.store.create('tasks', { project_id: s.project.id, obligation_id: obligation.id, document_id: document.id, clause_number: '2.2.7', title: '完成登记', owner_label: '目标公司', status: 'pending', activated_on: '2026-11-01', effective_due_on: '2026-11-18', deadline_state: 'calculated', schedule_revision: 1 });
+    const preview = await request(s.app).post('/api/v1/reminders/preview').send({ channel: 'feishu' });
+    expect(preview.status).toBe(200);
+    expect(preview.body.data.content.body).toContain('协议：增资协议-拙河科技.pdf');
+    expect(preview.body.data.content.body).toContain('条款：2.2.7');
+    expect(preview.body.data.content.body).toContain('负责人：目标公司');
+    expect(preview.body.data.content.body).toContain('动作：完成');
+    expect(preview.body.data.content.body).toContain('交付物：登记');
+    expect(preview.body.data.content.body).toContain('原期限：2026年11月18日前完成登记');
   });
   it('rejects stale previews with an envelope and allows explicit historical edited snapshot', async () => {
     const s = setup(); const preview = (await request(s.app).post('/api/v1/reminders/preview').send({})).body.data;

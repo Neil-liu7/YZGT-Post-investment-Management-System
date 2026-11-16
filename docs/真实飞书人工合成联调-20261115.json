@@ -1,0 +1,15 @@
+{
+  "status": "succeeded",
+  "scope": "manual_synthetic_message_only",
+  "channel": "feishu",
+  "target": "已配置的飞书测试群",
+  "subject": "协议全链路联调",
+  "body_notice": "仅发送合成内容，不包含协议正文、公司条款或真实事项数据。",
+  "content_sha256": "e56e6e84b701c4481b139c9768fc3c5b18a14d995a6fa97bfb4e148ec45558b4",
+  "new_transmission_attempts": 1,
+  "transport_state": "succeeded",
+  "receipt_status": "not_confirmed",
+  "protocol_data_sent": false,
+  "recorded_at": "2026-11-15T11:39:27Z",
+  "note": "用户明确授权发送一条合成联调消息；该人工发送未改写既有固定联调台账，也未开启自动提醒。"
+}

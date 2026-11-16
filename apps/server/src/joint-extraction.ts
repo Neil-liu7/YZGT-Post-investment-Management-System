@@ -125,7 +125,7 @@ export class JointExtractionReview {
       });
       if (reviewConfirmed) rule.confirmation_status = 'confirmed';
       const validated = deadlineRuleSchema.parse(rule); this.business.validateRule(run.project_id, validated);
-      const obligation = this.business.createObligation(run.project_id, { title: draft.title, description: draft.description || '', owner_label: draft.owner_label || '', obligor: draft.obligor || '', source_type: 'ai', source_description: '联合提取候选人工审核确认', source_text: draft.source_text, source_locator: draft.locator, clause_index: draft.clause_index, document_id: document.id, document_version_id: document.id, draft_id: draft.id, clause_number: draft.clause_number || '', rule: validated });
+      const obligation = this.business.createObligation(run.project_id, { title: draft.title, description: draft.description || '', owner_label: draft.owner_label || '', obligor: draft.obligor || '', action: draft.action || '', deliverable: draft.deliverable || '', trigger: draft.trigger || '', source_type: 'ai', source_description: '联合提取候选人工审核确认', source_text: draft.source_text, source_locator: draft.locator, clause_index: draft.clause_index, document_id: document.id, document_version_id: document.id, draft_id: draft.id, clause_number: draft.clause_number || '', rule: validated });
       this.store.update('drafts', draft.id, draft.version, { review_state: 'approved', obligation_id: obligation.id, rule: validated });
       if (obligation.duplicate) skipped.push(obligation.id); else created.push(obligation);
       tasks.push(...obligation.tasks);

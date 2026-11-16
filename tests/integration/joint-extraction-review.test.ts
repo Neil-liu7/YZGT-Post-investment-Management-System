@@ -31,7 +31,7 @@ function setup(paymentDate: string | null = null) {
   const event = (key: string, date: string | null, index: number) => store.create('event_drafts', { ...source(index), candidate_key: key, name: key === 'signing' ? '协议签署' : '收到款项', event_type: key === 'signing' ? 'signing' : 'investment', investor_label: '', occurred_on: date, reuse_event_id: null, reuse_event_version: null });
   const signing = event('signing', '2026-11-01', 0), payment = event('payment', paymentDate, 1);
   const base = { schema_version: 1, confirmation_status: 'needs_review', original_expression: '从原文提取' };
-  const draft = (title: string, index: number, rule: unknown) => store.create('drafts', { ...source(index), title, description: title, obligor: '公司', owner_label: '', rule });
+  const draft = (title: string, index: number, rule: unknown) => store.create('drafts', { ...source(index), title, description: title, obligor: '公司', owner_label: '', action: title.slice(0, 2), deliverable: title.slice(2), trigger: title.includes('申请') ? '协议签署' : title.includes('凭证') ? '收到款项' : '', rule });
   const application = draft('提交申请', 0, { ...base, kind: 'relative', anchor: { type: 'event', event_id: 'candidate-event:signing' }, offsets: [{ amount: 10, unit: 'calendar_day', include_start_day: false }], convention });
   const receipt = draft('提供凭证', 1, { ...base, kind: 'relative', anchor: { type: 'event', event_id: 'candidate-event:payment' }, offsets: [{ amount: 5, unit: 'business_day', include_start_day: false }], convention });
   const fixed = draft('完成实缴', 2, { ...base, kind: 'fixed', date: '2029-12-31', convention });
@@ -83,6 +83,8 @@ describe('joint extraction human review and atomic confirmation', () => {
     expect(p.tasks.find((t: any) => t.title === '提供凭证')).toMatchObject({ effective_due_on: null, deadline_state: 'waiting_event' });
     const result = await confirm(r, selected, p.versions); expect(result.status).toBe(200);
     expect(result.body.data.events_created).toHaveLength(2); expect(r.store.all('obligations')).toHaveLength(3); expect(r.store.all('tasks')).toHaveLength(3);
+    expect(r.store.all('obligations').find((o: any) => o.title === '提交申请')).toMatchObject({ action: '提交', deliverable: '申请', trigger: '协议签署' });
+    expect(r.store.all('tasks').find((t: any) => t.title === '提交申请')).toMatchObject({ action: '提交', deliverable: '申请', trigger: '协议签署' });
     expect(r.store.require('event_drafts', r.payment.id)).toMatchObject({ review_state: 'approved', occurred_on: null });
     expect(r.store.all('events').find(e => e.event_type === 'investment').occurred_on).toBeNull();
     expect(r.store.all('obligations').every(o => !JSON.stringify(o.rule).includes('candidate-event:') && o.rule.confirmation_status === 'confirmed')).toBe(true);

@@ -58,6 +58,9 @@ async function interactiveValues(values: LocalEnv): Promise<LocalEnv> {
     await ask('OUTBOUND_MODE', '通知模式（mock/live）', result.OUTBOUND_MODE || 'mock');
     if (result.OUTBOUND_MODE === 'live') { await ask('SMTP_HOST', 'SMTP服务器'); await ask('SMTP_PORT', 'SMTP端口', result.SMTP_PORT || '465'); await ask('SMTP_SECURE', 'SMTP使用TLS（true/false）', result.SMTP_SECURE || 'true'); await ask('SMTP_USER', 'SMTP账号'); const pass = await hidden(rl, `SMTP密码${result.SMTP_PASS ? '（已配置，回车保留）' : ''}：`); if (pass.trim()) result.SMTP_PASS = pass.trim(); await ask('SMTP_FROM', 'SMTP发件地址'); await ask('MAIL_TO', '邮件收件地址'); await ask('FEISHU_WEBHOOK_URL', '飞书机器人Webhook'); await ask('FEISHU_KEYWORD', '飞书关键词', result.FEISHU_KEYWORD || '投后提醒'); }
     await ask('SCHEDULER_ENABLED', '自动提醒总开关（true/false）', result.SCHEDULER_ENABLED || 'false');
+    await ask('OCR_MODE', '扫描件 OCR 模式（disabled/mock/tesseract）', result.OCR_MODE || 'disabled');
+    if (result.OCR_MODE === 'mock') await ask('OCR_MOCK_TEXT', '模拟 OCR 文本（可留空，测试时注入）', result.OCR_MOCK_TEXT || '');
+    if (result.OCR_MODE === 'tesseract') { await ask('OCR_TESSERACT_PATH', 'Tesseract 路径（可留空使用 PATH）', result.OCR_TESSERACT_PATH || ''); await ask('OCR_PDFTOPPM_PATH', 'pdftoppm 路径（可留空使用 PATH）', result.OCR_PDFTOPPM_PATH || ''); await ask('OCR_LANG', 'OCR 语言包', result.OCR_LANG || 'chi_sim+eng'); await ask('OCR_TIMEOUT_MS', 'OCR 超时（毫秒）', result.OCR_TIMEOUT_MS || '120000'); }
     await ask('BACKUP_SCHEDULE_ENABLED', '定时备份总开关（true/false）', result.BACKUP_SCHEDULE_ENABLED || 'false');
     if (result.BACKUP_SCHEDULE_ENABLED === 'true') { await ask('BACKUP_INTERVAL_HOURS', '备份间隔（小时）', result.BACKUP_INTERVAL_HOURS || '24'); await ask('BACKUP_RETENTION', '备份保留份数', result.BACKUP_RETENTION || '7'); }
     await ask('SUPERVISOR_LOG_MAX_BYTES', '日志轮换大小（字节）', result.SUPERVISOR_LOG_MAX_BYTES || '10485760');
