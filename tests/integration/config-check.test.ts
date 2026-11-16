@@ -52,6 +52,14 @@ describe('local configuration self-check', () => {
     expect(result.checks.some(check => check.code === 'SCHEDULER_REQUIRES_LIVE')).toBe(true);
   });
 
+  it('validates the three-times-per-day Feishu schedule without connecting', () => {
+    const ready = inspectConfiguration({ ...base, FEISHU_SCHEDULE_TIMES: '09:00,12:00,18:00' }, { checkPaths: false });
+    expect(ready.checks).toContainEqual({ code: 'FEISHU_SCHEDULE_TIMES_VALID', state: 'ok', message: '飞书提醒时间有效。' });
+    const invalid = inspectConfiguration({ ...base, FEISHU_SCHEDULE_TIMES: '09:00,25:00' }, { checkPaths: false });
+    expect(invalid.status).toBe('invalid');
+    expect(invalid.checks).toContainEqual({ code: 'FEISHU_SCHEDULE_TIMES_VALID', state: 'error', message: '飞书提醒时间有效。' });
+  });
+
   it('rejects invalid upload limits, port and unsafe model URL before any connection', () => {
     const result = inspectConfiguration({ ...liveChannels, MAX_UPLOAD_BYTES: '0', PORT: '70000', LLM_BASE_URL: 'http://models.example/v1' }, { checkPaths: false });
     expect(result.status).toBe('invalid');

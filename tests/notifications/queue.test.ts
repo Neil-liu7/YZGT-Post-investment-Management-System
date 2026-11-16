@@ -150,10 +150,10 @@ describe('persistent notification occurrences and queue', () => {
     s.service.scan({ recovery: true }); await s.service.processQueue();
     s.setTime('2026-11-10T01:00:00Z'); s.task('B');
     s.setTime('2026-11-10T01:30:00Z'); await s.service.tick({ force_enabled: true });
-    expect(s.store.all('reminders').filter(r => r.channel === 'feishu')).toHaveLength(2);
+    expect(s.store.all('reminders').filter(r => r.channel === 'feishu')).toHaveLength(3);
     const scans = s.store.all('scheduler_runs');
     expect(scans.some(r => r.kind === 'recovery')).toBe(true);
-    expect(scans.some(r => r.slot === 'feishu:2026-11-10')).toBe(true);
+    expect(scans.some(r => r.slot === 'feishu:2026-11-10:09:00')).toBe(true);
   });
   it('rebuilds an unsent partial batch against latest state and cancels the completed member', async () => {
     const s = setup(); const a = s.task('A'); s.task('B'); s.service.scan({ force: true });
@@ -173,12 +173,21 @@ describe('persistent notification occurrences and queue', () => {
     expect(n.content.body).toBe('人工确认的旧稿');
     expect(s.store.get('snapshots', preview.id).content.body).toContain('A');
   });
-  it('does not consume the Feishu daily slot at the 09:00 mail time', async () => {
+  it('sends Feishu at 09:00 and does not duplicate the same time slot', async () => {
     const s = setup('2026-11-09T01:00:00Z'); s.task();
     await s.service.tick({ force_enabled: true });
-    expect(s.store.all('reminders')).toHaveLength(0);
+    expect(s.store.all('reminders')).toHaveLength(1);
     s.setTime('2026-11-09T01:30:00Z'); await s.service.tick({ force_enabled: true });
     expect(s.store.all('reminders')).toHaveLength(1);
+  });
+  it('sends three independent Feishu reminder slots at 09:00, 12:00 and 18:00', async () => {
+    const s = setup('2026-11-09T01:00:00Z'); s.task();
+    await s.service.tick({ force_enabled: true });
+    s.setTime('2026-11-09T04:00:00Z'); await s.service.tick({ force_enabled: true });
+    s.setTime('2026-11-09T10:00:00Z'); await s.service.tick({ force_enabled: true });
+    expect(s.store.all('scheduler_runs').filter(run => run.channel === 'feishu').map(run => run.slot)).toEqual([
+      'feishu:2026-11-09:09:00', 'feishu:2026-11-09:12:00', 'feishu:2026-11-09:18:00',
+    ]);
   });
   it('keeps live automatic work paused when the scheduler global switch is disabled', async () => {
     const s = setup(undefined, { OUTBOUND_MODE: 'live', SCHEDULER_ENABLED: false, FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/synthetic', adapter: async () => ({ status: 'succeeded' }) });

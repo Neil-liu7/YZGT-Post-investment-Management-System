@@ -65,6 +65,21 @@ describe('notification HTTP contracts', () => {
     expect(preview.body.data.content.body).toContain('动作：完成');
     expect(preview.body.data.content.body).toContain('交付物：登记');
     expect(preview.body.data.content.body).toContain('原期限：2026年11月18日前完成登记');
+    expect(preview.body.data.content.body).toContain('**完成登记**');
+    expect(preview.body.data.content.body).toContain('📎 增资协议-拙河科技.pdf');
+    expect(preview.body.data.content.body).toContain('📅 2026-11-18 · 剩余 7 天');
+    expect(preview.body.data.content.body).toContain('📝 条款：2.2.7');
+    expect(preview.body.data.content.body).toContain('**合成项目机密标题 · 共 2 条进行中事项**');
+  });
+  it('groups a Feishu preview by project while keeping each project count local', async () => {
+    const s = setup();
+    const other = s.store.create('projects', { name: '第二个合成项目', company: '另一家合成公司', archived: false });
+    s.store.create('tasks', { project_id: other.id, title: '第二项目事项', status: 'doing', activated_on: '2026-11-01', effective_due_on: '2026-11-19', deadline_state: 'calculated', schedule_revision: 1 });
+    const preview = await request(s.app).post('/api/v1/reminders/preview').send({ channel: 'feishu' });
+    expect(preview.status).toBe(200);
+    expect(preview.body.data.content.body).toContain('**合成项目机密标题 · 共 1 条进行中事项**');
+    expect(preview.body.data.content.body).toContain('**第二个合成项目 · 共 1 条进行中事项**');
+    expect(preview.body.data.content.body).toContain('**第二项目事项**');
   });
   it('rejects stale previews with an envelope and allows explicit historical edited snapshot', async () => {
     const s = setup(); const preview = (await request(s.app).post('/api/v1/reminders/preview').send({})).body.data;

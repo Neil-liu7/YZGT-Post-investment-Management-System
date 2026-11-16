@@ -31,12 +31,11 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
   const [error, setError] = useState<unknown>(null);
   const [success, setSuccess] = useState('');
   const initialized = useRef(false);
-  const autoPreviewed = useRef(false);
   const request = useRef(0);
   const stable = ['succeeded', 'partial'].includes(run.state);
   const versionKey = JSON.stringify([run.id, run.version, drafts.map(d => [d.id, d.version, d.review_state]), events.map(e => [e.id, e.version, e.review_state]), existing.data?.items.map(e => [e.id, e.version]), calendars.data?.items.map(c => [c.id, c.version]), calendar]);
   const currentVersion = useRef(versionKey); currentVersion.current = versionKey;
-  function invalidate() { request.current++; autoPreviewed.current = false; setPreview(null); setAcknowledged(false); }
+  function invalidate() { request.current++; setPreview(null); setAcknowledged(false); }
   useEffect(() => {
     request.current++; setPreview(null); setAcknowledged(false);
     if (!stable) return;
@@ -98,11 +97,6 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
     } catch (failure) { if (request.current === sequence) setError(failure); }
     finally { setBusy(false); }
   }
-  useEffect(() => {
-    if (!stable || pending || preview || autoPreviewed.current || !selectedDrafts.length) return;
-    autoPreviewed.current = true;
-    void calculate();
-  }, [stable, pending, preview, selectedDrafts.length, selectedEvents.length, calendar]);
   async function confirm() {
     if (!preview || !acknowledged) return;
     setBusy(true); setError(null); setSuccess('');
@@ -118,7 +112,7 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
   function refresh() { invalidate(); setError(null); reload(); existing.reload(); calendars.reload(); }
   return <>
     <Link className={s.back} to={`/documents/${run.document_id}`}>← 返回协议原文</Link>
-    <PageTitle eyebrow="协议自动提取与审核" title="关键事件与义务审核" description="系统已经自动读取协议并识别关键事件、义务、责任主体和期限；你不需要先手动定义关键事件，只需核对异常项并确认。" actions={<button onClick={refresh} disabled={pending}>刷新提取结果</button>} />
+    <PageTitle eyebrow="协议自动提取与审核" title="关键事件与义务审核" description="系统已经自动读取协议并识别关键事件、义务、责任主体和期限；你不需要先手动定义关键事件，只需核对异常项并确认。" actions={<button onClick={refresh} disabled={pending}>刷新候选</button>} />
     <div className={s.notice}>{run.mode === 'live' ? '外部模型候选' : '模拟模型候选'} · <Badge value={run.state} />{stable && <p><strong>系统已自动勾选可直接确认的候选。</strong> 日期未知的事件会保留为“待事件”，不会被系统猜测；只有识别不完整的候选需要你补充。</p>}{run.mode !== 'live' && <p>当前为模拟提取，仅演示确定性提取流程；复杂自然语言补充要求的效果需使用真实模型验证；接入真实模型后会按相同审核流程返回协议内容。</p>}{run.error && <p>{run.error}</p>}</div>
     {run.state === 'partial' && <div role="alert" className={s.hint}>
       <strong>部分片段提取失败，当前仅显示已成功提取的候选。</strong>
@@ -151,7 +145,7 @@ export function JointReviewPage({ run, loading, error: loadError, reload }: Prop
           </article>;
         })}</div>}
       </Card>
-      <Card title={`义务候选（${drafts.length}）`} aside={<button onClick={() => { invalidate(); setSelected(new Set(drafts.filter(d => available(d) && !draftIssue(d, events)).map(d => d.id))); }}>一键选中可确认项</button>}>
+      <Card title={`义务候选（${drafts.length}）`} aside={<button onClick={() => { invalidate(); setSelected(new Set(drafts.filter(d => available(d) && !draftIssue(d, events)).map(d => d.id))); }}>选择可导入义务</button>}>
         {!drafts.length ? <Empty title="暂无义务候选">可审核事件候选，或返回原文补充要求后重新提取。</Empty> : <div className={j.candidates}>{drafts.map((draft, index) => {
           const issue = draftIssue(draft, events), approved = draft.review_state === 'approved', ignored = draft.review_state === 'ignored';
           return <article key={draft.id} className={j.candidate} aria-label={`义务候选 ${index + 1}`}>

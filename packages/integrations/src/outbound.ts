@@ -52,7 +52,7 @@ export async function sendOutbound(message: OutboundMessage, config: Record<stri
       if (!webhook || !/^https:\/\/open\.feishu\.cn\/open-apis\/bot\/v2\/hook\/[A-Za-z0-9-]+$/.test(webhook)) return { status: 'failed', retryable: false, error: '飞书机器人地址未配置或无效。' };
       if (message.recipient_key !== feishuRecipientKey(webhook)) return { status: 'failed', retryable: false, error_code: 'RECIPIENT_CHANGED', error: '飞书接收目标已变化，请重新预览后发送。' };
       const keyword = configured(config, 'FEISHU_KEYWORD') || '投后提醒';
-      const response = await (config.fetcher ?? fetch)(webhook, { method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20000), body: JSON.stringify({ msg_type: 'interactive', card: { header: { title: { tag: 'plain_text', content: `${keyword} · ${message.content.subject}` } }, elements: [{ tag: 'div', text: { tag: 'plain_text', content: message.content.body } }] } }) });
+      const response = await (config.fetcher ?? fetch)(webhook, { method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20000), body: JSON.stringify({ msg_type: 'interactive', card: { header: { title: { tag: 'plain_text', content: `【${keyword}】 ${message.content.subject}` } }, elements: [{ tag: 'div', text: { tag: 'lark_md', content: message.content.body } }] } }) });
       if (!response.ok) return { status: 'failed', retryable: response.status === 429 || response.status >= 500, error: `飞书明确拒绝请求（HTTP ${response.status}）。` };
       const data: any = await response.json();
       return Number(data.code ?? data.StatusCode ?? -1) === 0 ? { status: 'succeeded' } : { status: 'failed', retryable: false, error: '飞书明确返回发送失败，请检查机器人关键字、签名或权限配置。' };

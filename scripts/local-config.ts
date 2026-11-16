@@ -10,7 +10,7 @@ export const supportedKeys = [
   'LLM_MODE', 'LLM_PROVIDER', 'LLM_API_KEY', 'LLM_MODEL', 'LLM_BASE_URL', 'LLM_JSON_MODE', 'LLM_TIMEOUT_MS',
   'LLM_MAX_TOKENS', 'LLM_REASONING_EFFORT', 'LLM_TEMPERATURE', 'GLM_API_KEY', 'GLM_MODEL', 'GLM_BASE_URL',
   'ALLOW_EXTERNAL_MODEL', 'OUTBOUND_MODE', 'SCHEDULER_ENABLED', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE',
-  'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'MAIL_TO', 'FEISHU_WEBHOOK_URL', 'FEISHU_KEYWORD',
+  'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'MAIL_TO', 'FEISHU_WEBHOOK_URL', 'FEISHU_KEYWORD', 'FEISHU_SCHEDULE_TIMES',
   'OCR_MODE', 'OCR_MOCK_TEXT', 'OCR_TESSERACT_PATH', 'OCR_PDFTOPPM_PATH', 'OCR_LANG', 'OCR_TIMEOUT_MS',
   'BACKUP_SCHEDULE_ENABLED', 'BACKUP_INTERVAL_HOURS', 'BACKUP_RETENTION', 'SUPERVISOR_LOG_DIR',
   'SUPERVISOR_LOG_MAX_BYTES', 'SUPERVISOR_LOG_RETENTION', 'SUPERVISOR_ALERT_FILE',
@@ -108,6 +108,8 @@ export function checkConfiguration(values: LocalEnv, options: { checkNode?: bool
   const scheduler = bool(values.SCHEDULER_ENABLED);
   add(scheduler !== undefined || values.SCHEDULER_ENABLED === undefined, 'SCHEDULER_VALUE_VALID', '自动提醒开关配置有效。', { enabled: scheduler ?? false });
   if (scheduler && outbound !== 'live') add(false, 'SCHEDULER_REQUIRES_LIVE', '开启自动提醒前必须使用真实通知模式。');
+  const scheduleTimes = String(values.FEISHU_SCHEDULE_TIMES || '09:00,12:00,18:00').split(/[,，;；\s]+/).filter(Boolean);
+  add(scheduleTimes.length > 0 && scheduleTimes.every(time => /^([01]\d|2[0-3]):[0-5]\d$/.test(time)), 'FEISHU_SCHEDULE_TIMES_VALID', '飞书提醒时间有效。', { times: scheduleTimes });
   const ocrMode = values.OCR_MODE || 'disabled';
   add(['disabled', 'mock', 'tesseract'].includes(ocrMode), 'OCR_MODE_VALID', 'OCR模式配置有效。', { mode: ocrMode });
   const ocrTimeout = Number(values.OCR_TIMEOUT_MS || '120000');

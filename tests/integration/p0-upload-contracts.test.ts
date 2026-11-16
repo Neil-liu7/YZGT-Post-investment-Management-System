@@ -27,6 +27,16 @@ describe('P0 multipart operation identity', () => {
     expect(response.body.data.items.find((item: any) => item.id === document.id)).toMatchObject({ protocol_name: '增资协议-示例', latest_extraction_id: run.id, latest_extraction_state: 'succeeded' });
   });
 
+  it('reuses an active automatic extraction instead of creating a duplicate run', async () => {
+    const r = setup();
+    const document = r.store.create('documents', { project_id: r.project.id, original_name: '自动提取协议.txt', state: 'parsed', file_version: 1, text: '第一条 公司应提交材料。' });
+    const active = r.store.create('extractions', { project_id: r.project.id, document_id: document.id, document_version: 1, state: 'queued', mode: 'mock', prompt: '' });
+    const repeated = await request(r.app).post(`/api/v1/documents/${document.id}/extractions`).send({ prompt: '' });
+    expect(repeated.status).toBe(202);
+    expect(repeated.body.data.id).toBe(active.id);
+    expect(r.store.all('extractions')).toHaveLength(1);
+  });
+
   it('replays the original upload and still permits a new intentional version', async () => {
     const r = setup();
     const upload = (key: string, content = bytes) => request(r.app).post(`/api/v1/projects/${r.project.id}/documents`).set('Idempotency-Key', key).attach('file', content, 'synthetic.txt');

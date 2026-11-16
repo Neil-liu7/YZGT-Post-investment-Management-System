@@ -36,6 +36,22 @@ describe('outbound transport safety', () => {
     expect(result.status).toBe('succeeded'); expect(fetcher).toHaveBeenCalledOnce();
   });
 
+  it('sends the reminder body as a Feishu markdown card element', async () => {
+    let payload: any;
+    const fetcher = vi.fn(async (_url: string, options: any) => {
+      payload = JSON.parse(options.body);
+      return { ok: true, json: async () => ({ code: 0 }) };
+    });
+    const result = await outbound.sendOutbound({
+      ...card,
+      content: { subject: '王盘智能', body: '**王盘智能 · 共 2 条进行中事项**\n\n📅 2026-11-18 · 剩余 3 天' },
+    }, { OUTBOUND_MODE: 'live', FEISHU_WEBHOOK_URL: hookA, fetcher });
+    expect(result.status).toBe('succeeded');
+    expect(payload.card.header.title.content).toContain('王盘智能');
+    expect(payload.card.elements[0]).toMatchObject({ tag: 'div', text: { tag: 'lark_md' } });
+    expect(payload.card.elements[0].text.content).toContain('剩余 3 天');
+  });
+
   it.each([
     new DOMException('synthetic secret timeout', 'TimeoutError'),
     Object.assign(new Error('synthetic secret reset'), { code: 'ECONNRESET' }),

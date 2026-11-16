@@ -4,7 +4,7 @@ import { normalizeRecipients, recipientKey, feishuRecipientKey, sendOutbound, ty
 import { AppError, type Store } from './store.ts';
 
 type Row = Record<string, any>;
-type ScanOptions = { recovery?: boolean; force?: boolean; mode?: string; channels?: string[] };
+type ScanOptions = { recovery?: boolean; force?: boolean; mode?: string; channels?: string[]; slot?: string };
 type PreviewOptions = { channel?: string; project_id?: string; task_ids?: string[]; recipients?: string | string[]; mode?: string; purpose?: string };
 const recipientInputSchema = z.union([z.string(), z.array(z.string()).max(1000)]);
 const previewSchema = z.object({ channel: z.enum(['email', 'feishu']).optional(), project_id: z.string().min(1).optional(), task_ids: z.array(z.string().min(1)).max(10000).optional(), recipients: recipientInputSchema.optional(), mode: z.enum(['mock', 'live']).optional(), purpose: z.enum(['manual', 'test']).optional() });
@@ -50,12 +50,41 @@ export class NotificationService {
   }
   private content(items: Row[], channel: string, scopeName?: string) {
     const today = businessToday(this.clock());
-    const subject = channel === 'email' ? '投后管理履约事项汇总' : `${scopeName || items[0]?.project_name || '投后项目'}履约提醒`;
-    const body = items.length ? items.map(t => {
+    const subject = channel === 'email' ? '投后管理履约事项汇总' : `${scopeName || items[0]?.project_name || '投后项目'}`;
+    const detail = (t: Row) => {
       const remaining = t.effective_due_on ? daysBetween(today, t.effective_due_on) : null;
       const due = remaining === null ? '待确定期限' : remaining < 0 ? `逾期 ${-remaining} 天` : `剩余 ${remaining} 天`;
       return `【${t.project_name}】${t.protocol_name || t.document_name || '未指定协议'}\n事项：${t.title}\n动作：${t.action || '待核对'}　交付物：${t.deliverable || '待核对'}\n触发条件：${t.trigger || '待核对'}\n原期限：${t.original_expression || '待核对'}\n协议：${t.document_name || '手工或待核对来源'}　${t.clause_number ? `条款：${t.clause_number}　` : ''}${t.source_location ? `位置：${t.source_location}` : ''}\n责任主体：${t.obligor}　负责人：${t.owner_label}\n截止：${t.effective_due_on || '待确定'}（${due}）　状态：${t.status}　期限状态：${t.deadline_state}\n原文：${t.source_text || '暂无可回看的原文片段'}`;
-    }).join('\n\n') : '本周无临期事项。';
+    };
+    const feishuBody = () => {
+      if (!items.length) return '本周无临期事项。';
+      const groups = new Map<string, Row[]>();
+      for (const item of items) groups.set(item.project_name || '未命名项目', [...(groups.get(item.project_name || '未命名项目') ?? []), item]);
+      return [...groups.entries()].map(([project, group]) => {
+        const entries = group.map((t: Row) => {
+          const remaining = t.effective_due_on ? daysBetween(today, t.effective_due_on) : null;
+          const due = remaining === null ? '待确定' : t.effective_due_on;
+          const remainingLabel = remaining === null ? '期限待核对' : remaining < 0 ? `逾期 ${-remaining} 天` : `剩余 ${remaining} 天`;
+          const clause = t.clause_number || t.source_location || '条款待核对';
+          const source = t.source_text || '暂无可回看的原文片段';
+          return [
+            `**${t.title || '未命名事项'}**`,
+            `📎 ${t.document_name || '—'}`,
+            `📅 ${due} · ${remainingLabel}`,
+            `📝 条款：${clause}`,
+            `责任主体：${t.obligor || '待核对'}　负责人：${t.owner_label || '未指定'}`,
+            `动作：${t.action || '待核对'}　交付物：${t.deliverable || '待核对'}`,
+            `触发条件：${t.trigger || '待核对'}　原期限：${t.original_expression || '待核对'}`,
+            `协议：${t.document_name || t.protocol_name || '未指定协议'}${t.source_location ? ` · ${t.source_location}` : ''}`,
+            `原文：${source}`,
+          ].join('\n');
+        });
+        return [`**${project} · 共 ${group.length} 条进行中事项**`, ...entries].join('\n\n');
+      }).join('\n\n---\n\n');
+    };
+    const body = channel === 'feishu'
+      ? feishuBody()
+      : items.length ? items.map(detail).join('\n\n') : '本周无临期事项。';
     return { subject, body, items, business_date: today };
   }
   private createBatch(reminders: Row[], channel: string, mode: string, target: Row, extras: Row = {}) {
@@ -76,19 +105,30 @@ export class NotificationService {
     if (chunk.length) batches.push(this.createBatch(chunk, channel, mode, target, extras));
     return batches;
   }
-  private occurrence(task: Row, channel: string, mode: string, target: Row, stage: string, policy: Row) {
-    const business_key = [mode, task.id, task.schedule_revision ?? 1, policy.policy_revision, channel, target.recipient_key, stage].join('|');
+  private occurrence(task: Row, channel: string, mode: string, target: Row, stage: string, policy: Row, scheduleSlot?: string) {
+    // Each scheduled Feishu time is an independent reminder opportunity. Manual
+    // and recovery scans keep their historical de-duplication behavior.
+    const business_key = [mode, task.id, task.schedule_revision ?? 1, policy.policy_revision, channel, target.recipient_key, stage, scheduleSlot ?? 'manual'].join('|');
     const existing = this.store.all('reminders', { business_key })[0];
     if (existing) return null;
-    return this.store.create('reminders', { business_key, task_id: task.id, project_id: task.project_id, schedule_revision: task.schedule_revision ?? 1, policy_revision: policy.policy_revision, channel, mode, recipient_key: target.recipient_key, stage, status: 'pending', notification_id: null });
+    return this.store.create('reminders', { business_key, task_id: task.id, project_id: task.project_id, schedule_revision: task.schedule_revision ?? 1, policy_revision: policy.policy_revision, channel, mode, recipient_key: target.recipient_key, stage, schedule_slot: scheduleSlot ?? null, status: 'pending', notification_id: null });
   }
   private afterMondaySlot(today: string) {
     const day = new Date(`${today}T00:00:00Z`).getUTCDay();
     const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(this.clock());
     return day !== 1 || hhmm >= '09:00';
   }
+  private feishuScheduleTimes(): string[] {
+    const raw = String(this.env('FEISHU_SCHEDULE_TIMES') ?? '09:00,12:00,18:00');
+    const values = raw.split(/[,，;；\s]+/).map(value => value.trim()).filter(Boolean);
+    const valid = values.filter(value => /^([01]\d|2[0-3]):[0-5]\d$/.test(value));
+    return [...new Set(valid)].sort();
+  }
+  private currentShanghaiTime(): string {
+    return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(this.clock());
+  }
   scan(options: ScanOptions = {}) {
-    options = z.object({ recovery: z.boolean().optional(), force: z.boolean().optional(), mode: z.enum(['mock', 'live']).optional(), channels: z.array(z.enum(['email', 'feishu'])).max(2).optional() }).parse(options);
+    options = z.object({ recovery: z.boolean().optional(), force: z.boolean().optional(), mode: z.enum(['mock', 'live']).optional(), channels: z.array(z.enum(['email', 'feishu'])).max(2).optional(), slot: z.string().max(100).optional() }).parse(options);
     // Explicit development scans always use the simulated transport.
     const mode = options.force ? 'mock' : this.mode(options.mode);
     const today = businessToday(this.clock()); const policy = this.setting();
@@ -102,7 +142,7 @@ export class NotificationService {
         const target = this.target(channel, mode); if (!target.available) continue;
         const week = isoWeek(today);
         if (channel === 'email' && !this.afterMondaySlot(today)) continue;
-        const slot = channel === 'feishu' ? `feishu:${today}` : `email:${week}`;
+        const slot = channel === 'feishu' ? (options.slot ?? `feishu:${today}`) : `email:${week}`;
         const scheduled = !options.recovery && !options.force;
         const slot_key = scheduled ? `${mode}|${slot}` : null;
         if (slot_key && this.store.all('scheduler_runs', { slot_key }).length) continue;
@@ -111,7 +151,7 @@ export class NotificationService {
         if (channel === 'feishu') {
           for (const task of tasks) {
             const stage = reminderStage(daysBetween(today, task.effective_due_on), policy.lead_days);
-            if (stage) { const r = this.occurrence(task, channel, mode, target, stage, policy); if (r) newReminders.push(r); }
+            if (stage) { const r = this.occurrence(task, channel, mode, target, stage, policy, options.slot); if (r) newReminders.push(r); }
           }
           const groups = new Map<string, Row[]>();
           for (const r of newReminders) groups.set(r.project_id, [...(groups.get(r.project_id) ?? []), r]);
@@ -121,7 +161,7 @@ export class NotificationService {
           if (!this.store.all('digest_runs', { business_key }).length) {
             const members = tasks.filter(t => daysBetween(today, t.effective_due_on) <= 7);
             const digest = this.store.create('digest_runs', { business_key, scope: 'all', channel, recipient_key: target.recipient_key, iso_week: week, mode, task_ids: members.map(t => t.id), status: members.length ? 'sealed' : policy.send_empty ? 'sealed_empty' : 'skipped_empty', sealed_at: this.clock().toISOString() });
-            for (const task of members) { const r = this.occurrence(task, channel, mode, target, week, policy); if (r) newReminders.push(r); }
+            for (const task of members) { const r = this.occurrence(task, channel, mode, target, week, policy, options.slot); if (r) newReminders.push(r); }
             if (newReminders.length) created.push(...this.batchChunks(newReminders, channel, mode, target, { digest_run_id: digest.id }));
             else if (!members.length && policy.send_empty) created.push(this.createBatch([], channel, mode, target, { digest_run_id: digest.id }));
           }
@@ -139,14 +179,18 @@ export class NotificationService {
     const enabled = this.env('SCHEDULER_ENABLED') === true || this.env('SCHEDULER_ENABLED') === 'true';
     const mockedOverride = options.force_enabled && this.mode() === 'mock';
     if (enabled || mockedOverride) {
-      const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(this.clock());
-      if (options.recovery || hhmm >= '09:30') this.scan({ recovery: options.recovery });
-      else if (hhmm >= '09:00') this.scanMailOnly();
+      const hhmm = this.currentShanghaiTime();
+      if (options.recovery) this.scan({ recovery: true });
+      else {
+        const feishuTime = this.feishuScheduleTimes().filter(time => time <= hhmm).at(-1);
+        if (feishuTime) this.scan({ channels: ['feishu'], slot: `feishu:${businessToday(this.clock())}:${feishuTime}` });
+        if (hhmm >= '09:00') this.scanMailOnly();
+      }
     }
     return this.processQueue();
   }
   private scanMailOnly() {
-    // Use a scoped scan so the 09:00 mail slot does not consume the 09:30 Feishu slot.
+    // Use a scoped scan so the 09:00 mail slot does not consume any Feishu time slot.
     return this.scanChannels(['email']);
   }
   private scanChannels(channels: string[]) {
